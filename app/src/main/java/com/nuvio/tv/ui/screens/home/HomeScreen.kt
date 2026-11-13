@@ -673,6 +673,9 @@ private fun ModernHomeRoute(
             viewModel.onEvent(HomeEvent.OnLoadMoreCatalog(catalogId, addonId, type))
         }
     }
+    val requestLazyCatalogLoad = remember(viewModel) {
+        { catalogKey: String -> viewModel.requestLazyCatalogLoad(catalogKey) }
+    }
     val removeContinueWatching = remember(viewModel) {
         { contentId: String, season: Int?, episode: Int?, isNextUp: Boolean ->
             viewModel.onEvent(HomeEvent.OnRemoveContinueWatching(contentId, season, episode, isNextUp))
@@ -695,7 +698,9 @@ private fun ModernHomeRoute(
         onNavigateToDetail = onNavigateToDetail,
         onContinueWatchingClick = onContinueWatchingClick,
         onNavigateToFolderDetail = onNavigateToFolderDetail,
-        onNavigateToRoute = onNavigateToRoute
+        onNavigateToRoute = onNavigateToRoute,
+        onLoadMoreCatalog = loadMoreCatalog,
+        onRequestLazyCatalogLoad = requestLazyCatalogLoad
     )
 }
 
