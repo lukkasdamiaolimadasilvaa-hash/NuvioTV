@@ -25,6 +25,7 @@ html,body{height:100%;background:#000;overflow:hidden;font-family:var(--font);co
 #home.hero .title{font-size:100px;letter-spacing:-1.5px}
 #home.rows .title{font-size:66px}
 .meta{display:flex;align-items:center;gap:14px;font-size:21px;margin:16px 0 8px}
+.meta .g{color:var(--green);font-weight:700}
 .meta .bx{background:#4d4d4d;padding:2px 10px;border-radius:3px;font-weight:700;font-size:18px}
 .meta .ol{border:2px solid #aaa;padding:0 8px;border-radius:3px;font-size:16px;font-weight:700}
 #home.hero .meta{opacity:0;height:0;margin:0;overflow:hidden}
@@ -51,6 +52,7 @@ html,body{height:100%;background:#000;overflow:hidden;font-family:var(--font);co
 .wm{position:absolute;right:54px;bottom:28px;font-weight:900;font-size:48px;color:var(--accent);letter-spacing:1.5px;z-index:3;text-shadow:0 2px 10px rgba(0,0,0,.8)}
 .p{position:relative;flex:0 0 auto;width:205px;height:300px;border-radius:3px;overflow:hidden;color:#fff;transition:transform .2s;background-color:#171717;background-size:cover;background-position:center;cursor:pointer}
 .p .pt{position:absolute;left:12px;right:12px;bottom:16px;font-weight:900;font-size:24px;line-height:1.05;text-shadow:2px 2px 6px rgba(0,0,0,.85)}
+.p .pr{position:absolute;left:0;bottom:0;height:5px;background:var(--accent)}
 .p.f{outline:5px solid #fff;outline-offset:-1px;z-index:5;transform:scale(1.03)}
 #emptyState{display:none;position:absolute;left:155px;top:430px;width:900px;font-size:28px;color:#aaa;line-height:1.4;z-index:4}
 #toast{position:absolute;left:50%;bottom:90px;transform:translateX(-50%);background:rgba(25,25,25,.96);border:2px solid #777;padding:16px 34px;font-size:25px;z-index:60;display:none;border-radius:4px}
@@ -123,7 +125,7 @@ function enterHome(section,keep){
  $("#rowsWrap").innerHTML=S.rows.map((row,rowIndex)=>{
   const cards=row.items.map(item=>{
    const art=item.poster?'background-image:url("'+esc(item.poster).replace(/["\\]/g,"")+'")':"";
-   return '<div class="p" data-key="'+encodeURIComponent(item.key)+'" style="'+art+'"><span class="pt">'+esc(item.title)+'</span></div>';
+   const progress=row.isContinue&&item.progress>0?'<span class="pr" style="width:'+Math.max(0,Math.min(100,item.progress))+'%"></span>':'';\n   return '<div class="p" data-key="'+encodeURIComponent(item.key)+'" style="'+art+'"><span class="pt">'+esc(item.title)+'</span>'+progress+'</div>';
   }).join("");
   return '<div class="row" style="top:'+(rowIndex*395)+'px"><div class="rt">'+esc(row.title)+'</div><div class="trk">'+cards+'</div></div>';
  }).join("");
@@ -135,7 +137,7 @@ function homeItem(){
 }
 function metaHtml(item){
  const parts=[];
- if(item.match)parts.push('<span class="g">'+esc(item.match)+'% Relevante</span>');
+ if(item.imdb)parts.push('<span class="g">IMDb '+esc(item.imdb)+'</span>');
  if(item.year)parts.push('<span>'+esc(item.year)+'</span>');
  if(item.rating)parts.push('<span class="bx">'+esc(item.rating)+'</span>');
  if(item.dur)parts.push('<span>'+esc(item.dur)+'</span>');
