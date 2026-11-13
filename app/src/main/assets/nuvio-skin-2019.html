@@ -198,7 +198,7 @@ const KEYMAP={ArrowUp:"u",ArrowDown:"d",ArrowLeft:"l",ArrowRight:"r",Enter:"ok",
 document.addEventListener("keydown",event=>{
  const key=KEYMAP[event.key]||KEYMAP[event.keyCode];if(!key)return;
  event.preventDefault();
- if(key==="bk"){if(S.rail){S.rail=false;paintHome();}return;}
+ if(key==="bk"){window.NuvioSkin.back();return;}
  if(S.rail){
   if(key==="u")S.railIdx=Math.max(0,S.railIdx-1);
   else if(key==="d")S.railIdx=Math.min(6,S.railIdx+1);
@@ -219,7 +219,8 @@ window.NuvioSkin={
   S.catalog=rows.flatMap(row=>row.items||[]);
   enterHome(S.section,true);
  },
- focus(){try{document.body.focus();}catch(_){}}
+ focus(){try{document.body.focus();}catch(_){}},
+ back(){if(S.rail){S.rail=false;paintHome();}else{toRail();}}
 };
 enterHome(1,false);
 </script>
