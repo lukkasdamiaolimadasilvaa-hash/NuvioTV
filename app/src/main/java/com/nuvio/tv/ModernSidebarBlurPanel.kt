@@ -246,7 +246,9 @@ private fun SidebarNavigationItem(
     val colors = NuvioTheme.colors
     val shape = RoundedCornerShape(NuvioRadii.tokens.full)
     val palette = NuvioTheme.palette
-    val accentColor = palette.secondary
+    // Netflix-classic navigation accent: keep the existing sidebar behavior and focus model,
+    // but use the signature red for the active destination.
+    val accentColor = Color(0xFFE50914)
     val backgroundColorTarget = when {
         isFocused && selected -> accentColor.copy(alpha = 0.28f)
         isFocused -> Color.White.copy(alpha = 0.12f)
@@ -272,7 +274,7 @@ private fun SidebarNavigationItem(
     )
     val contentColor = if (selected && !isFocused) contentColorTarget else animatedContentColor
 
-    val iconBrush = if (selected) palette.accentBrush() else null
+    val iconBrush = if (selected) Brush.linearGradient(listOf(Color(0xFFE50914), Color(0xFFE50914))) else null
     val iconTintTarget = when {
         selected -> Color.White
         isFocused -> colors.TextPrimary
