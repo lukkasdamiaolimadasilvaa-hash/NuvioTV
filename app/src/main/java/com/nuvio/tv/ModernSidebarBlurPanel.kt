@@ -114,11 +114,11 @@ internal fun ModernSidebarBlurPanel(
     val borderBase = colors.Border
     val isAmoledBlack = bgElevated == Color.Black
     val panelBackgroundBrush = remember(blurEnabled, isAmoledBlack, bgElevated, bgCard) {
-        val baseColor = if (isAmoledBlack) Color.Black else Color(0xFF161618)
+        val baseColor = if (isAmoledBlack) Color.Black else Color(0xFF090909)
         val alpha = when {
-            blurEnabled -> 0.65f
+            blurEnabled -> 0.88f
             isAmoledBlack -> 1f
-            else -> 0.97f
+            else -> 0.98f
         }
         Brush.verticalGradient(listOf(
             baseColor.copy(alpha = alpha),
@@ -250,9 +250,9 @@ private fun SidebarNavigationItem(
     // but use the signature red for the active destination.
     val accentColor = Color(0xFFE50914)
     val backgroundColorTarget = when {
-        isFocused && selected -> accentColor.copy(alpha = 0.28f)
+        isFocused && selected -> accentColor
         isFocused -> Color.White.copy(alpha = 0.12f)
-        selected -> accentColor.copy(alpha = 0.15f)
+        selected -> accentColor.copy(alpha = 0.90f)
         else -> Color.Transparent
     }
     val animatedBackgroundColor by animateColorAsState(
@@ -263,7 +263,7 @@ private fun SidebarNavigationItem(
     val backgroundColor = if (selected && !isFocused) backgroundColorTarget else animatedBackgroundColor
 
     val contentColorTarget = when {
-        selected -> accentColor
+        selected -> Color.White
         isFocused -> colors.TextPrimary
         else -> colors.text.onOverlay
     }
@@ -274,7 +274,7 @@ private fun SidebarNavigationItem(
     )
     val contentColor = if (selected && !isFocused) contentColorTarget else animatedContentColor
 
-    val iconBrush = if (selected) Brush.linearGradient(listOf(Color(0xFFE50914), Color(0xFFE50914))) else null
+    val iconBrush = if (selected) Brush.linearGradient(listOf(Color.White, Color.White)) else null
     val iconTintTarget = when {
         selected -> Color.White
         isFocused -> colors.TextPrimary
