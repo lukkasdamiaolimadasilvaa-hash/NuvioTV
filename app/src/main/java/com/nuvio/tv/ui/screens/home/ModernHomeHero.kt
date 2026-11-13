@@ -372,7 +372,7 @@ private fun HeroTitleContent(
     val highlighterEnabled = LocalRecompositionHighlighterEnabled.current
     val descriptionMaxLines = 3
     val descriptionScale = if (portraitMode) 0.90f else 1f
-    val titleScale = if (portraitMode) 1.00f else 1.10f
+    val titleScale = if (portraitMode) 1.08f else 1.18f
     val metaScale = 1f
     val titleSpacing = NuvioTheme.spacing.sm * titleScale
     val metaSpacing = NuvioTheme.spacing.sm * metaScale
@@ -382,8 +382,8 @@ private fun HeroTitleContent(
     val headlineLarge = MaterialTheme.typography.headlineLarge
     val labelMedium = MaterialTheme.typography.labelMedium
     val bodyMedium = MaterialTheme.typography.bodyMedium
-    val logoMaxWidthPx = remember(density) { with(density) { 300.dp.roundToPx() } }
-    val logoHeightPx = remember(density) { with(density) { 132.dp.roundToPx() } }
+    val logoMaxWidthPx = remember(density) { with(density) { 360.dp.roundToPx() } }
+    val logoHeightPx = remember(density) { with(density) { 150.dp.roundToPx() } }
 
     val logoModel = remember(context, preview.logo, logoMaxWidthPx, logoHeightPx) {
         preview.logo?.let {
@@ -427,8 +427,8 @@ private fun HeroTitleContent(
                 contentDescription = preview.title,
                 onError = { logoLoadFailed = true },
                 modifier = Modifier
-                     .height(132.dp)
-                    .widthIn(min = 120.dp, max = 300.dp)
+                     .height(150.dp)
+                    .widthIn(min = 120.dp, max = 360.dp)
                     .fillMaxWidth(),
                 contentScale = ContentScale.Fit,
                 alignment = Alignment.CenterStart
@@ -687,7 +687,7 @@ private fun HeroTitleContent(
             Button(
                 onClick = onMoreInfoClick,
                 modifier = Modifier
-                    .padding(top = NuvioTheme.spacing.md)
+                    .padding(top = NuvioTheme.spacing.lg)
                     .graphicsLayer { alpha = metaAlpha },
                 // Netflix-classic primary surface: keep the existing real details
                 // navigation, but use the light CTA treatment from the reference design.
@@ -704,7 +704,7 @@ private fun HeroTitleContent(
                         shape = RoundedCornerShape(6.dp)
                     )
                 ),
-                contentPadding = PaddingValues(horizontal = 22.dp, vertical = 12.dp)
+                contentPadding = PaddingValues(horizontal = 28.dp, vertical = 15.dp)
             ) {
                 Text(
                     text = stringResource(R.string.cw_action_go_to_details),
