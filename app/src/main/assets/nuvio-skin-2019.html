@@ -125,7 +125,8 @@ function enterHome(section,keep){
  $("#rowsWrap").innerHTML=S.rows.map((row,rowIndex)=>{
   const cards=row.items.map(item=>{
    const art=item.poster?'background-image:url("'+esc(item.poster).replace(/["\\]/g,"")+'")':"";
-   const progress=row.isContinue&&item.progress>0?'<span class="pr" style="width:'+Math.max(0,Math.min(100,item.progress))+'%"></span>':'';\n   return '<div class="p" data-key="'+encodeURIComponent(item.key)+'" style="'+art+'"><span class="pt">'+esc(item.title)+'</span>'+progress+'</div>';
+   const progress=row.isContinue&&item.progress>0?'<span class="pr" style="width:'+Math.max(0,Math.min(100,item.progress))+'%"></span>':'';
+   return '<div class="p" data-key="'+encodeURIComponent(item.key)+'" style="'+art+'"><span class="pt">'+esc(item.title)+'</span>'+progress+'</div>';
   }).join("");
   return '<div class="row" style="top:'+(rowIndex*395)+'px"><div class="rt">'+esc(row.title)+'</div><div class="trk">'+cards+'</div></div>';
  }).join("");
