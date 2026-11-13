@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
 import com.nuvio.tv.domain.model.WatchProgress
+import com.nuvio.tv.domain.model.catalogRowLegacyKey
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -47,7 +48,12 @@ internal fun NuvioHtmlSkinHome(
     val latestOnRoute = rememberUpdatedState(onNavigateToRoute)
     val latestOnLoadMore = rememberUpdatedState(onLoadMoreCatalog)
     val lazyCatalogKeys = remember(presentation.rows) {
-        presentation.rows.list.filter { it.isLoading }.map { it.key }
+        presentation.rows.list.filter { it.isLoading }.mapNotNull { row ->
+            val addonId = row.addonId ?: return@mapNotNull null
+            val apiType = row.apiType ?: return@mapNotNull null
+            val catalogId = row.catalogId ?: return@mapNotNull null
+            catalogRowLegacyKey(addonId, apiType, catalogId)
+        }
     }
     val payload = remember(presentation.rows) { buildSkinPayload(presentation) }
     var webView by remember { mutableStateOf<WebView?>(null) }
