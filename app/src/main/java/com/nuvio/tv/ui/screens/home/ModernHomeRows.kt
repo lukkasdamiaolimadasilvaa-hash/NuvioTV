@@ -539,12 +539,16 @@ internal fun ModernRowSection(
     ) {
         val titleMediumStyle = MaterialTheme.typography.titleMedium
         val rowTitleStyle = remember(titleMediumStyle) {
-            titleMediumStyle.copy(fontWeight = FontWeight.SemiBold)
+            titleMediumStyle.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = titleMediumStyle.fontSize * 1.12f,
+                lineHeight = titleMediumStyle.lineHeight * 1.12f
+            )
         }
         val rowTitle = row.title
         val textColor = NuvioTheme.colors.TextPrimary
         val textModifier = remember(rowTitleBottom) {
-            Modifier.padding(start = 52.dp, bottom = rowTitleBottom)
+            Modifier.padding(start = 60.dp, bottom = rowTitleBottom)
         }
         Text(
             text = rowTitle,
@@ -917,7 +921,7 @@ internal fun ModernRowSection(
                     }
                     .focusGroup(),
                 contentPadding = PaddingValues(horizontal = rowStartPadding),
-                horizontalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.md)
+                horizontalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.lg)
             ) {
                 itemsIndexed(
                     items = row.items.list,
