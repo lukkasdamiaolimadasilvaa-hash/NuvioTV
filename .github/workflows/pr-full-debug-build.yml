@@ -76,3 +76,5 @@ jobs:
           archive: false
           if-no-files-found: error
           retention-days: 7
+
+# Keep this PR build workflow available for rebuilding the corrected branch head.
