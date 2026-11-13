@@ -33,7 +33,9 @@ internal fun NuvioHtmlSkinHome(
     onNavigateToDetail: (String, String, String) -> Unit,
     onContinueWatchingClick: (ContinueWatchingItem) -> Unit,
     onNavigateToFolderDetail: (String, String) -> Unit,
-    onNavigateToRoute: (String) -> Unit
+    onNavigateToRoute: (String) -> Unit,
+    onLoadMoreCatalog: (String, String, String) -> Unit,
+    onRequestLazyCatalogLoad: (String) -> Unit
 ) {
     val itemsByKey = remember(presentation.rows) {
         presentation.rows.list.flatMap { it.items.list }.associateBy { it.key }
@@ -43,6 +45,10 @@ internal fun NuvioHtmlSkinHome(
     val latestOnContinue = rememberUpdatedState(onContinueWatchingClick)
     val latestOnFolder = rememberUpdatedState(onNavigateToFolderDetail)
     val latestOnRoute = rememberUpdatedState(onNavigateToRoute)
+    val latestOnLoadMore = rememberUpdatedState(onLoadMoreCatalog)
+    val lazyCatalogKeys = remember(presentation.rows) {
+        presentation.rows.list.filter { it.isLoading }.map { it.key }
+    }
     val payload = remember(presentation.rows) { buildSkinPayload(presentation) }
     var webView by remember { mutableStateOf<WebView?>(null) }
     var pageReady by remember { mutableStateOf(false) }
@@ -90,6 +96,9 @@ internal fun NuvioHtmlSkinHome(
                     }
                 }
             },
+            loadMoreCatalog = { catalogId, addonId, type ->
+                mainHandler.post { latestOnLoadMore.value(catalogId, addonId, type) }
+            },
             navigate = { destination ->
                 mainHandler.post {
                     val route = when (destination) {
@@ -106,6 +115,10 @@ internal fun NuvioHtmlSkinHome(
     }
 
     val serializedPayload = remember(payload) { payload.toString() }
+
+    LaunchedEffect(lazyCatalogKeys) {
+        lazyCatalogKeys.forEach(onRequestLazyCatalogLoad)
+    }
 
     BackHandler(enabled = true) {
         webView?.evaluateJavascript("window.NuvioSkin&&window.NuvioSkin.back()", null)
@@ -178,11 +191,17 @@ internal fun NuvioHtmlSkinHome(
 
 internal class NuvioSkinJavascriptBridge(
     private val openItem: (String, String) -> Unit,
+    private val loadMoreCatalog: (String, String, String) -> Unit,
     private val navigate: (String) -> Unit
 ) {
     @JavascriptInterface
     fun openItem(key: String, action: String) {
         openItem.invoke(key, action)
+    }
+
+    @JavascriptInterface
+    fun loadMoreCatalog(catalogId: String, addonId: String, type: String) {
+        loadMoreCatalog.invoke(catalogId, addonId, type)
     }
 
     @JavascriptInterface
@@ -248,9 +267,15 @@ private fun buildSkinPayload(presentation: ModernHomePresentationState): JSONObj
         }
         rows.put(
             JSONObject()
+                .put("key", row.key)
                 .put("title", row.title)
                 .put("items", items)
                 .put("isContinue", row.key == MODERN_CONTINUE_WATCHING_ROW_KEY)
+                .put("hasMore", row.hasMore)
+                .put("catalogId", row.catalogId ?: JSONObject.NULL)
+                .put("addonId", row.addonId ?: JSONObject.NULL)
+                .put("apiType", row.apiType ?: JSONObject.NULL)
+                .put("pageCount", row.items.list.size)
         )
     }
     return JSONObject().put("rows", rows)
