@@ -245,7 +245,7 @@ class LayoutPreferenceDataStore @Inject constructor(
     }
 
     val modernHeroFullScreenBackdropEnabled: Flow<Boolean> = profileFlow { prefs ->
-        prefs[modernHeroFullScreenBackdropKey] ?: false
+        prefs[modernHeroFullScreenBackdropKey] ?: true
     }
 
     val heroSectionEnabled: Flow<Boolean> = profileFlow { prefs ->
