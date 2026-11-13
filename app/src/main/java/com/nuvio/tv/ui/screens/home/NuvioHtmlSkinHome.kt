@@ -153,22 +153,10 @@ internal fun NuvioHtmlSkinHome(
                     override fun onPageFinished(view: WebView, url: String?) {
                         pageReady = true
                         view.requestFocus()
-                        view.evaluateJavascript(
-                            "window.NuvioSkin&&window.NuvioSkin.setData($serializedPayload)",
-                            null
-                        )
                     }
                 }
                 webView = this
                 loadUrl("file:///android_asset/nuvio-skin-2019.html")
-            }
-        },
-        update = { view ->
-            if (pageReady) {
-                view.evaluateJavascript(
-                    "window.NuvioSkin&&window.NuvioSkin.setData($serializedPayload)",
-                    null
-                )
             }
         }
     )
