@@ -5,6 +5,7 @@ import android.graphics.Color as AndroidColor
 import android.os.Handler
 import android.os.Looper
 import android.webkit.JavascriptInterface
+import androidx.activity.compose.BackHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -105,6 +106,10 @@ internal fun NuvioHtmlSkinHome(
     }
 
     val serializedPayload = remember(payload) { payload.toString() }
+
+    BackHandler(enabled = true) {
+        webView?.evaluateJavascript("window.NuvioSkin&&window.NuvioSkin.back()", null)
+    }
 
     AndroidView(
         modifier = Modifier.fillMaxSize().background(Color.Black),
