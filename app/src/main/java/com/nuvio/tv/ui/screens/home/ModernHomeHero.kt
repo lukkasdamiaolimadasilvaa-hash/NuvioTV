@@ -689,11 +689,13 @@ private fun HeroTitleContent(
                 modifier = Modifier
                     .padding(top = NuvioTheme.spacing.md)
                     .graphicsLayer { alpha = metaAlpha },
+                // Netflix-classic primary surface: keep the existing real details
+                // navigation, but use the light CTA treatment from the reference design.
                 colors = ButtonDefaults.colors(
-                    containerColor = Color(0xFFE50914),
-                    focusedContainerColor = Color(0xFFFF1A24),
-                    contentColor = Color.White,
-                    focusedContentColor = Color.White
+                    containerColor = Color(0xFFE5E5E5),
+                    focusedContainerColor = Color.White,
+                    contentColor = Color(0xFF141414),
+                    focusedContentColor = Color(0xFF141414)
                 ),
                 shape = ButtonDefaults.shape(shape = RoundedCornerShape(6.dp)),
                 border = ButtonDefaults.border(
