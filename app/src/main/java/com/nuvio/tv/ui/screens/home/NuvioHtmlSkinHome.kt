@@ -171,7 +171,7 @@ internal fun NuvioHtmlSkinHome(
     }
 }
 
-private class NuvioSkinJavascriptBridge(
+internal class NuvioSkinJavascriptBridge(
     private val openItem: (String, String) -> Unit,
     private val navigate: (String) -> Unit
 ) {
@@ -189,9 +189,9 @@ private class NuvioSkinJavascriptBridge(
 private fun buildSkinPayload(presentation: ModernHomePresentationState): JSONObject {
     val rows = JSONArray()
     presentation.rows.list.forEach { row ->
+        if (row.isLoading || row.items.list.isEmpty()) return@forEach
         val items = JSONArray()
         row.items.list.forEach { item ->
-            val payload = JSONObject()
             val hero = item.heroPreview
             val target = JSONObject()
                 .put("key", item.key)
