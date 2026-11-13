@@ -96,7 +96,7 @@ const SVG={
 };
 const RAIL=["search","home","trend","tv","film","user","plus"];
 const ROUTES={0:"search",2:"discover",5:"library",6:"addon_manager"};
-const S={section:1,zone:"btn",rail:false,railIdx:1,row:0,col:[],rows:[],catalog:[],btn:0};
+const S={section:1,zone:"btn",rail:false,railIdx:1,row:0,col:[],rows:[],catalog:[],btn:0,loadMoreRequested:new Set()};
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function fit(){const scale=Math.min(innerWidth/1920,innerHeight/1080),stage=$("#stage");stage.style.transform="scale("+scale+")";stage.style.left=((innerWidth-1920*scale)/2)+"px";stage.style.top=((innerHeight-1080*scale)/2)+"px";}
 addEventListener("resize",fit);fit();
@@ -169,6 +169,13 @@ function paintHome(){
  });
  paintRail();
 }
+function requestMore(row){
+ if(!row||!row.hasMore||!row.catalogId||!row.addonId||!row.apiType||!window.NuvioBridge)return;
+ const token=row.key+":"+row.pageCount;
+ if(S.loadMoreRequested.has(token))return;
+ S.loadMoreRequested.add(token);
+ window.NuvioBridge.loadMoreCatalog(row.catalogId,row.addonId,row.apiType);
+}
 function goSection(index){
  S.rail=false;S.railIdx=index;
  if(index===1){enterHome(1,false);return;}
@@ -186,7 +193,10 @@ function keyHome(key){
   else if(key==="ok"){nativeOpen(homeItem(),S.btn===0?"play":"details");return;}
  }else{
   const row=S.rows[S.row],count=row?row.items.length:0;
-  if(key==="r")S.col[S.row]=Math.min(count-1,(S.col[S.row]||0)+1);
+  if(key==="r"){
+   S.col[S.row]=Math.min(count-1,(S.col[S.row]||0)+1);
+   if(S.col[S.row]>=Math.max(0,count-3))requestMore(row);
+  }
   else if(key==="l"){if((S.col[S.row]||0)>0)S.col[S.row]--;else toRail();}
   else if(key==="d"&&S.row<rowCount-1){S.row++;S.col[S.row]=Math.min(S.col[S.row]||0,Math.max(0,S.rows[S.row].items.length-1));}
   else if(key==="u"){if(S.row>0)S.row--;else{S.zone="btn";S.btn=0;}}
