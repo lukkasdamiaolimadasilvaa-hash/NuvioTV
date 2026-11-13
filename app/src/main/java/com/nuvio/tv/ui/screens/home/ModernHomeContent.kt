@@ -680,15 +680,15 @@ fun ModernHomeContent(
 
     val portraitBaseWidth = uiState.posterCardWidthDp.dp
     val portraitBaseHeight = uiState.posterCardHeightDp.dp
-    val portraitModernPosterScale = 1.16f
-    val landscapeModernPosterScale = 1.42f
+    val portraitModernPosterScale = 1.20f
+    val landscapeModernPosterScale = 1.46f
     val portraitCatalogCardWidth = portraitBaseWidth * 0.84f * portraitModernPosterScale
     val portraitCatalogCardHeight = portraitBaseHeight * 0.84f * portraitModernPosterScale
     val landscapeCatalogCardWidth = portraitBaseWidth * 1.24f * landscapeModernPosterScale
     val landscapeCatalogCardHeight = landscapeCatalogCardWidth / 1.77f
     // Poster style reuses the portrait catalog dimensions so its artwork matches the catalogs below it.
     val continueWatchingStyle = uiState.continueWatchingCardStyle
-    val continueWatchingScale = 1.42f
+    val continueWatchingScale = 1.46f
     val continueWatchingCardWidth = when (continueWatchingStyle) {
         ContinueWatchingCardStyle.POSTER -> portraitCatalogCardWidth
         // Wide still scales with the poster width setting so it matches the rest of the row.
@@ -1040,7 +1040,7 @@ fun ModernHomeContent(
             }
 
             val localDensity = LocalDensity.current
-            val rowsViewportHeightFraction = if (useLandscapePosters) 0.43f else 0.46f
+            val rowsViewportHeightFraction = if (useLandscapePosters) 0.40f else 0.43f
             val rowsViewportHeight = remember(screenHeight, rowsViewportHeightFraction) { screenHeight * rowsViewportHeightFraction }
             val rowTitleLineHeight = MaterialTheme.typography.titleMedium.lineHeight
             val rowTitleHeight = remember(rowTitleLineHeight, localDensity) {
