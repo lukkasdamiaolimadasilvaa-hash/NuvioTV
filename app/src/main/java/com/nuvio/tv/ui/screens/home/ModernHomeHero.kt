@@ -371,8 +371,8 @@ private fun HeroTitleContent(
     val preview = previewProvider() ?: return
     val highlighterEnabled = LocalRecompositionHighlighterEnabled.current
     val descriptionMaxLines = 3
-    val descriptionScale = if (portraitMode) 0.90f else 1f
-    val titleScale = if (portraitMode) 1.08f else 1.18f
+    val descriptionScale = 1f
+    val titleScale = if (portraitMode) 1.15f else 1.26f
     val metaScale = 1f
     val titleSpacing = NuvioTheme.spacing.sm * titleScale
     val metaSpacing = NuvioTheme.spacing.sm * metaScale
@@ -382,8 +382,8 @@ private fun HeroTitleContent(
     val headlineLarge = MaterialTheme.typography.headlineLarge
     val labelMedium = MaterialTheme.typography.labelMedium
     val bodyMedium = MaterialTheme.typography.bodyMedium
-    val logoMaxWidthPx = remember(density) { with(density) { 360.dp.roundToPx() } }
-    val logoHeightPx = remember(density) { with(density) { 150.dp.roundToPx() } }
+    val logoMaxWidthPx = remember(density) { with(density) { 440.dp.roundToPx() } }
+    val logoHeightPx = remember(density) { with(density) { 180.dp.roundToPx() } }
 
     val logoModel = remember(context, preview.logo, logoMaxWidthPx, logoHeightPx) {
         preview.logo?.let {
@@ -427,8 +427,8 @@ private fun HeroTitleContent(
                 contentDescription = preview.title,
                 onError = { logoLoadFailed = true },
                 modifier = Modifier
-                     .height(150.dp)
-                    .widthIn(min = 120.dp, max = 360.dp)
+                     .height(180.dp)
+                    .widthIn(min = 120.dp, max = 440.dp)
                     .fillMaxWidth(),
                 contentScale = ContentScale.Fit,
                 alignment = Alignment.CenterStart
