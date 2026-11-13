@@ -49,7 +49,7 @@ data class HomeUiState(
         FocusedPosterTrailerPlaybackTarget.HERO_MEDIA,
     val posterCardWidthDp: Int = 126,
     val posterCardHeightDp: Int = 189,
-    val posterCardCornerRadiusDp: Int = 12,
+    val posterCardCornerRadiusDp: Int = 6,
     val librarySourceMode: LibrarySourceMode = LibrarySourceMode.LOCAL,
     val libraryListTabs: List<LibraryListTab> = emptyList(),
     val posterLibraryMembership: Map<String, Boolean> = emptyMap(),
