@@ -370,9 +370,9 @@ private fun HeroTitleContent(
 ) {
     val preview = previewProvider() ?: return
     val highlighterEnabled = LocalRecompositionHighlighterEnabled.current
-    val descriptionMaxLines = 4
+    val descriptionMaxLines = 3
     val descriptionScale = if (portraitMode) 0.90f else 1f
-    val titleScale = if (portraitMode) 0.92f else 1f
+    val titleScale = if (portraitMode) 1.00f else 1.10f
     val metaScale = 1f
     val titleSpacing = NuvioTheme.spacing.sm * titleScale
     val metaSpacing = NuvioTheme.spacing.sm * metaScale
@@ -382,8 +382,8 @@ private fun HeroTitleContent(
     val headlineLarge = MaterialTheme.typography.headlineLarge
     val labelMedium = MaterialTheme.typography.labelMedium
     val bodyMedium = MaterialTheme.typography.bodyMedium
-    val logoMaxWidthPx = remember(density) { with(density) { 220.dp.roundToPx() } }
-    val logoHeightPx = remember(density) { with(density) { 100.dp.roundToPx() } }
+    val logoMaxWidthPx = remember(density) { with(density) { 300.dp.roundToPx() } }
+    val logoHeightPx = remember(density) { with(density) { 132.dp.roundToPx() } }
 
     val logoModel = remember(context, preview.logo, logoMaxWidthPx, logoHeightPx) {
         preview.logo?.let {
@@ -427,8 +427,8 @@ private fun HeroTitleContent(
                 contentDescription = preview.title,
                 onError = { logoLoadFailed = true },
                 modifier = Modifier
-                    .height(100.dp)
-                    .widthIn(min = 100.dp, max = 220.dp)
+                     .height(132.dp)
+                    .widthIn(min = 120.dp, max = 300.dp)
                     .fillMaxWidth(),
                 contentScale = ContentScale.Fit,
                 alignment = Alignment.CenterStart
@@ -690,10 +690,10 @@ private fun HeroTitleContent(
                     .padding(top = NuvioTheme.spacing.md)
                     .graphicsLayer { alpha = metaAlpha },
                 colors = ButtonDefaults.colors(
-                    containerColor = Color.White,
-                    focusedContainerColor = Color.White,
-                    contentColor = Color.Black,
-                    focusedContentColor = Color.Black
+                    containerColor = Color(0xFFE50914),
+                    focusedContainerColor = Color(0xFFFF1A24),
+                    contentColor = Color.White,
+                    focusedContentColor = Color.White
                 ),
                 shape = ButtonDefaults.shape(shape = RoundedCornerShape(6.dp)),
                 border = ButtonDefaults.border(
