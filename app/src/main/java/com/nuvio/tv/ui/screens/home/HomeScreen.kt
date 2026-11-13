@@ -91,7 +91,8 @@ fun HomeScreen(
     onContinueWatchingStartFromBeginning: (ContinueWatchingItem) -> Unit = onContinueWatchingClick,
     onContinueWatchingPlayManually: (ContinueWatchingItem) -> Unit = onContinueWatchingClick,
     onNavigateToCatalogSeeAll: (String, String, String) -> Unit = { _, _, _ -> },
-    onNavigateToFolderDetail: (String, String) -> Unit = { _, _ -> }
+    onNavigateToFolderDetail: (String, String) -> Unit = { _, _ -> },
+    onNavigateToRoute: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -414,6 +415,7 @@ fun HomeScreen(
                                 onContinueWatchingPlayManually = onContinueWatchingPlayManuallyStable,
                                 showContinueWatchingManualPlayOption = effectiveAutoplayEnabled,
                                 onNavigateToFolderDetail = onNavigateToFolderDetailStable,
+                                onNavigateToRoute = onNavigateToRoute,
                                 isCatalogItemWatched = isCatalogItemWatched,
                                 onCatalogItemLongPress = onCatalogItemLongPress
                             )
@@ -649,6 +651,7 @@ private fun ModernHomeRoute(
     onContinueWatchingPlayManually: (ContinueWatchingItem) -> Unit,
     showContinueWatchingManualPlayOption: Boolean,
     onNavigateToFolderDetail: (String, String) -> Unit = { _, _ -> },
+    onNavigateToRoute: (String) -> Unit,
     isCatalogItemWatched: (MetaPreview) -> Boolean,
     onCatalogItemLongPress: (MetaPreview, String) -> Unit
 ) {
@@ -687,41 +690,12 @@ private fun ModernHomeRoute(
             viewModel.preloadAdjacentItem(item)
         }
     }
-    ModernHomeContent(
-        uiState = uiState,
-        modernPresentation = modernPresentation,
-        focusState = focusState,
-        scrollToTopTrigger = scrollToTopTrigger,
-        enrichingItemId = enrichingItemId,
-        enrichedPreviews = enrichedPreviews,
-        failedEnrichmentIds = failedEnrichmentIds,
-        trailerPreviewUrls = viewModel.trailerPreviewUrls,
-        trailerPreviewAudioUrls = viewModel.trailerPreviewAudioUrls,
+    NuvioHtmlSkinHome(
+        presentation = modernPresentation,
         onNavigateToDetail = onNavigateToDetail,
         onContinueWatchingClick = onContinueWatchingClick,
-        onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginning,
-        onContinueWatchingPlayManually = onContinueWatchingPlayManually,
-        showContinueWatchingManualPlayOption = showContinueWatchingManualPlayOption,
-        onRequestTrailerPreview = requestTrailerPreview,
-        onLoadMoreCatalog = loadMoreCatalog,
-        onMarkContinueWatchingWatched = remember(viewModel) {
-            { item -> viewModel.onEvent(HomeEvent.OnMarkContinueWatchingWatched(item)) }
-        },
-        onRemoveContinueWatching = removeContinueWatching,
-        isCatalogItemWatched = isCatalogItemWatched,
-        onCatalogItemLongPress = onCatalogItemLongPress,
         onNavigateToFolderDetail = onNavigateToFolderDetail,
-        onItemFocus = remember(viewModel) {
-            { item -> viewModel.onItemFocus(item) }
-        },
-        onPreloadAdjacentItem = preloadAdjacentItem,
-        onSaveFocusState = saveModernFocusState,
-        onFocusedRowKeyChanged = remember(viewModel) {
-            { key: String? -> viewModel.setLiveFocusedRowKey(key) }
-        },
-        onRequestLazyCatalogLoad = remember(viewModel) {
-            { catalogKey: String -> viewModel.requestLazyCatalogLoad(catalogKey) }
-        }
+        onNavigateToRoute = onNavigateToRoute
     )
 }
 
