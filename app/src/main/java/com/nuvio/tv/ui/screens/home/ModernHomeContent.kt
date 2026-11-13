@@ -1152,6 +1152,28 @@ fun ModernHomeContent(
                     }
                 },
                 descriptionAutoScrollEnabled = uiState.heroDescriptionAutoScrollEnabled,
+                onMoreInfoClick = {
+                    val selectedItem = activeCarouselItemState.value
+                        ?: carouselRows.list.firstOrNull()?.items?.firstOrNull()
+                    when (val payload = selectedItem?.payload) {
+                        is ModernPayload.Catalog -> onNavigateToDetail(
+                            payload.itemId,
+                            payload.itemType,
+                            payload.addonBaseUrl
+                        )
+                        is ModernPayload.CollectionFolder -> onNavigateToFolderDetail(
+                            payload.collectionId,
+                            payload.folderId
+                        )
+                        is ModernPayload.ContinueWatching -> {
+                            val preview = selectedItem.metaPreview
+                            if (preview != null) {
+                                onNavigateToDetail(preview.id, preview.apiType, preview.sourceAddonBaseUrl.orEmpty())
+                            }
+                        }
+                        null -> Unit
+                    }
+                },
                 modifier = heroMetadataModifier
             )
 

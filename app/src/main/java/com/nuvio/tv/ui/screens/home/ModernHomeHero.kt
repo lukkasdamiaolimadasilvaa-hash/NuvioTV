@@ -7,6 +7,7 @@ import com.nuvio.tv.ui.theme.NuvioTheme
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +52,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Button
+import androidx.tv.material3.ButtonDefaults
+import androidx.tv.material3.Border
+import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -306,6 +311,7 @@ internal fun HeroTitleBlock(
     mdbListRatingOrder: List<String> = com.nuvio.tv.domain.model.MDBListSettings.DEFAULT_RATING_ORDER,
     trailerPlaying: () -> Boolean = { false },
     descriptionAutoScrollEnabled: Boolean = false,
+    onMoreInfoClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     // The providers read hero state that is rewritten on every focus move, often with an equal
@@ -344,11 +350,13 @@ internal fun HeroTitleBlock(
             mdbListShowOnHero = mdbListShowOnHero,
             mdbListRatingOrder = mdbListRatingOrder,
             trailerPlaying = trailerPlaying,
-            descriptionAutoScrollEnabled = descriptionAutoScrollEnabled
+            descriptionAutoScrollEnabled = descriptionAutoScrollEnabled,
+            onMoreInfoClick = onMoreInfoClick
         )
     }
 }
 
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 private fun HeroTitleContent(
     previewProvider: () -> HeroPreview?,
@@ -357,7 +365,8 @@ private fun HeroTitleContent(
     mdbListShowOnHero: Boolean = false,
     mdbListRatingOrder: List<String> = com.nuvio.tv.domain.model.MDBListSettings.DEFAULT_RATING_ORDER,
     trailerPlaying: () -> Boolean = { false },
-    descriptionAutoScrollEnabled: Boolean = false
+    descriptionAutoScrollEnabled: Boolean = false,
+    onMoreInfoClick: (() -> Unit)? = null
 ) {
     val preview = previewProvider() ?: return
     val highlighterEnabled = LocalRecompositionHighlighterEnabled.current
@@ -672,6 +681,34 @@ private fun HeroTitleContent(
                 paused = trailerPlaying,
                 modifier = Modifier.graphicsLayer { alpha = metaAlpha }
             )
+        }
+
+        if (onMoreInfoClick != null) {
+            Button(
+                onClick = onMoreInfoClick,
+                modifier = Modifier
+                    .padding(top = NuvioTheme.spacing.md)
+                    .graphicsLayer { alpha = metaAlpha },
+                colors = ButtonDefaults.colors(
+                    containerColor = Color.White,
+                    focusedContainerColor = Color.White,
+                    contentColor = Color.Black,
+                    focusedContentColor = Color.Black
+                ),
+                shape = ButtonDefaults.shape(shape = RoundedCornerShape(6.dp)),
+                border = ButtonDefaults.border(
+                    focusedBorder = Border(
+                        border = BorderStroke(NuvioTheme.spacing.xxs, NuvioTheme.colors.FocusRing),
+                        shape = RoundedCornerShape(6.dp)
+                    )
+                ),
+                contentPadding = PaddingValues(horizontal = 22.dp, vertical = 12.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.cw_action_go_to_details),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            }
         }
     }
 }
