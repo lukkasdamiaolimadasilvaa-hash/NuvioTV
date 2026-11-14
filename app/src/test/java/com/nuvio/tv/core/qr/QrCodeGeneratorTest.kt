@@ -1,10 +1,9 @@
 package com.nuvio.tv.core.qr
 
+import android.graphics.Color
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
-import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
-import com.google.zxing.qrcode.encoder.Encoder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -14,32 +13,41 @@ class QrCodeGeneratorTest {
     private val url = "https://nuvio.tv/device?code=ABC123&nonce=0123456789abcdef"
 
     @Test
-    fun `module grid matches the encoded symbol for the login margin`() {
-        val matrix = QRCodeWriter().encode(url, BarcodeFormat.QR_CODE, 420, 420, mapOf(EncodeHintType.MARGIN to 1))
-        val symbol = Encoder.encode(url, ErrorCorrectionLevel.L).matrix
+    fun `pixel rendering preserves every encoded module with login margin`() {
+        val size = 420
+        val matrix = QRCodeWriter().encode(
+            url, BarcodeFormat.QR_CODE, size, size,
+            mapOf(EncodeHintType.MARGIN to 1)
+        )
 
-        val grid = QrCodeGenerator.moduleGrid(matrix)
+        val pixels = QrCodeGenerator.toPixels(matrix, size)
 
-        // Row 0 is quiet zone, which is what made the old scan fall back to 1 px modules
-        assertTrue(grid.moduleSize > 1)
-        assertEquals(symbol.width, grid.modules)
-        for (row in 0 until symbol.height) {
-            for (col in 0 until symbol.width) {
-                val x = grid.left + col * grid.moduleSize
-                val y = grid.top + row * grid.moduleSize
-                assertEquals("module $col,$row", symbol.get(col, row) == 1.toByte(), matrix[x, y])
+        assertEquals(size * size, pixels.size)
+        for (y in 0 until size) {
+            for (x in 0 until size) {
+                val expected = if (matrix[x, y]) Color.BLACK else Color.WHITE
+                assertEquals("pixel $x,$y", expected, pixels[y * size + x])
             }
         }
+        assertTrue(pixels.any { it == Color.BLACK })
+        assertTrue(pixels.any { it == Color.WHITE })
     }
 
     @Test
-    fun `module grid handles zero margin`() {
-        val matrix = QRCodeWriter().encode(url, BarcodeFormat.QR_CODE, 512, 512, mapOf(EncodeHintType.MARGIN to 0))
-        val symbol = Encoder.encode(url, ErrorCorrectionLevel.L).matrix
+    fun `pixel rendering preserves zero margin matrix`() {
+        val size = 512
+        val matrix = QRCodeWriter().encode(
+            url, BarcodeFormat.QR_CODE, size, size,
+            mapOf(EncodeHintType.MARGIN to 0)
+        )
 
-        val grid = QrCodeGenerator.moduleGrid(matrix)
+        val pixels = QrCodeGenerator.toPixels(matrix, size)
 
-        assertEquals(symbol.width, grid.modules)
-        assertEquals(512 / symbol.width, grid.moduleSize)
+        for (y in 0 until size) {
+            for (x in 0 until size) {
+                val expected = if (matrix[x, y]) Color.BLACK else Color.WHITE
+                assertEquals("pixel $x,$y", expected, pixels[y * size + x])
+            }
+        }
     }
 }

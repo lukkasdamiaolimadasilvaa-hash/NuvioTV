@@ -146,7 +146,7 @@ fun HeroCarousel(
                 else
                     Modifier.fillMaxWidth()
             )
-            .height(400.dp)
+            .height(520.dp)
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .onFocusChanged {
                 isFocused = it.hasFocus || it.isFocused
@@ -326,7 +326,7 @@ private fun HeroCarouselSlide(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(start = NuvioTheme.spacing.xxxl, bottom = NuvioTheme.spacing.xxxl, end = NuvioTheme.spacing.xxxl)
-                .fillMaxWidth(0.42f),
+                .fillMaxWidth(0.50f),
             verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.sm)
         ) {
             if (showLogo) {
@@ -335,8 +335,8 @@ private fun HeroCarouselSlide(
                     contentDescription = item.name,
                     onError = { logoLoadFailed = true },
                     modifier = Modifier
-                        .height(100.dp)
-                        .widthIn(min = 100.dp, max = 220.dp)
+                        .height(116.dp)
+                        .widthIn(min = 120.dp, max = 260.dp)
                         .fillMaxWidth(),
                     contentScale = ContentScale.Fit,
                     alignment = Alignment.CenterStart
@@ -430,7 +430,7 @@ private fun HeroCarouselSlide(
                         textDirection = description.contentTextDirection()
                     ),
                     color = NuvioTheme.colors.TextPrimary,
-                    maxLines = 4,
+                    maxLines = 3,
                     autoScrollEnabled = descriptionAutoScrollEnabled,
                     onScrollHoldChanged = onDescriptionScrollHoldChanged
                 )
@@ -462,7 +462,7 @@ internal fun HeroCarouselBackdrop(
         with(density) { configuration.screenWidthDp.dp.roundToPx() }.coerceAtLeast(1)
     }
     val requestHeightPx = remember(configuration.screenHeightDp, density, fullPage) {
-        val height = if (fullPage) configuration.screenHeightDp.dp else 400.dp
+        val height = if (fullPage) configuration.screenHeightDp.dp else 520.dp
         with(density) { height.roundToPx() }.coerceAtLeast(1)
     }
     val backdropUrl = item.backdropUrl

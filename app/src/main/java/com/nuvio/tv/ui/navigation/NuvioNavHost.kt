@@ -310,6 +310,22 @@ private fun PlaybackNavHost(
                 },
                 onNavigateToFolderDetail = { collectionId, folderId ->
                     navController.navigate(Screen.FolderDetail.createRoute(collectionId, folderId))
+                },
+                onNavigateToRoute = { destination ->
+                    val target = when (destination) {
+                        "search" -> Screen.Search.route
+                        "discover" -> Screen.Discover.route
+                        "library" -> Screen.Library.route
+                        "addon_manager" -> Screen.AddonManager.route
+                        else -> null
+                    }
+                    if (target != null && target != navController.currentDestination?.route) {
+                        navController.navigate(target) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 }
             )
         }

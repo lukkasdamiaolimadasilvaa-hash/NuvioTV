@@ -680,15 +680,15 @@ fun ModernHomeContent(
 
     val portraitBaseWidth = uiState.posterCardWidthDp.dp
     val portraitBaseHeight = uiState.posterCardHeightDp.dp
-    val portraitModernPosterScale = 1.08f
-    val landscapeModernPosterScale = 1.34f
-    val portraitCatalogCardWidth = portraitBaseWidth * 0.84f * portraitModernPosterScale
-    val portraitCatalogCardHeight = portraitBaseHeight * 0.84f * portraitModernPosterScale
-    val landscapeCatalogCardWidth = portraitBaseWidth * 1.24f * landscapeModernPosterScale
+    val portraitModernPosterScale = 1.0f
+    val landscapeModernPosterScale = 1.0f
+    val portraitCatalogCardWidth = portraitBaseWidth * portraitModernPosterScale
+    val portraitCatalogCardHeight = portraitBaseHeight * portraitModernPosterScale
+    val landscapeCatalogCardWidth = portraitBaseWidth * 1.30f * landscapeModernPosterScale
     val landscapeCatalogCardHeight = landscapeCatalogCardWidth / 1.77f
     // Poster style reuses the portrait catalog dimensions so its artwork matches the catalogs below it.
     val continueWatchingStyle = uiState.continueWatchingCardStyle
-    val continueWatchingScale = 1.34f
+    val continueWatchingScale = 1.0f
     val continueWatchingCardWidth = when (continueWatchingStyle) {
         ContinueWatchingCardStyle.POSTER -> portraitCatalogCardWidth
         // Wide still scales with the poster width setting so it matches the rest of the row.
@@ -707,7 +707,7 @@ fun ModernHomeContent(
 
     Box(modifier = Modifier.fillMaxSize().background(NuvioTheme.colors.Background)) {
             val posterCardCornerRadius = remember(uiState.posterCardCornerRadiusDp) { uiState.posterCardCornerRadiusDp.dp }
-            val rowHorizontalPadding = 52.dp
+            val rowHorizontalPadding = 60.dp
 
             val activeCarouselItemState = remember(carouselRows, rowByKey) {
                 derivedStateOf {
@@ -1040,7 +1040,7 @@ fun ModernHomeContent(
             }
 
             val localDensity = LocalDensity.current
-            val rowsViewportHeightFraction = if (useLandscapePosters) 0.49f else 0.52f
+            val rowsViewportHeightFraction = if (useLandscapePosters) 0.44f else 0.44f
             val rowsViewportHeight = remember(screenHeight, rowsViewportHeightFraction) { screenHeight * rowsViewportHeightFraction }
             val rowTitleLineHeight = MaterialTheme.typography.titleMedium.lineHeight
             val rowTitleHeight = remember(rowTitleLineHeight, localDensity) {
@@ -1152,6 +1152,28 @@ fun ModernHomeContent(
                     }
                 },
                 descriptionAutoScrollEnabled = uiState.heroDescriptionAutoScrollEnabled,
+                onMoreInfoClick = {
+                    val selectedItem = activeCarouselItemState.value
+                        ?: carouselRows.list.firstOrNull()?.items?.firstOrNull()
+                    when (val payload = selectedItem?.payload) {
+                        is ModernPayload.Catalog -> onNavigateToDetail(
+                            payload.itemId,
+                            payload.itemType,
+                            payload.addonBaseUrl
+                        )
+                        is ModernPayload.CollectionFolder -> onNavigateToFolderDetail(
+                            payload.collectionId,
+                            payload.folderId
+                        )
+                        is ModernPayload.ContinueWatching -> {
+                            val preview = selectedItem.metaPreview
+                            if (preview != null) {
+                                onNavigateToDetail(preview.id, preview.apiType, preview.sourceAddonBaseUrl.orEmpty())
+                            }
+                        }
+                        null -> Unit
+                    }
+                },
                 modifier = heroMetadataModifier
             )
 

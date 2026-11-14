@@ -1,367 +1,786 @@
 package com.nuvio.tv.ui.screens.home
 
-import androidx.compose.animation.core.animateFloatAsState
+import com.nuvio.tv.ui.theme.NuvioTheme
+
+import androidx.activity.compose.ReportDrawnWhen
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import android.util.Log
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
-import com.nuvio.tv.domain.model.ContinueWatchingItem
+import androidx.tv.material3.Button
+import androidx.tv.material3.ButtonDefaults
+import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Text
+import com.nuvio.tv.domain.model.HomeLayout
+import com.nuvio.tv.domain.model.LibraryListTab
+import com.nuvio.tv.domain.model.LibrarySourceMode
+import com.nuvio.tv.domain.model.MetaPreview
+import com.nuvio.tv.domain.model.isSeriesLikeType
+import com.nuvio.tv.ui.components.ErrorState
+import com.nuvio.tv.ui.components.LoadingIndicator
+import com.nuvio.tv.ui.components.LocalStartupLoadingState
+import com.nuvio.tv.ui.components.LocalStartupSplashEnabled
+import com.nuvio.tv.ui.components.shouldShowHomeStartupLoader
+import com.nuvio.tv.ui.components.NuvioDialog
+import com.nuvio.tv.ui.components.PosterCardDefaults
+import com.nuvio.tv.ui.components.PosterCardStyle
+import androidx.compose.ui.res.stringResource
+import com.nuvio.tv.R
+import com.nuvio.tv.ui.components.posteroptions.PosterListPickerDialog
+import com.nuvio.tv.core.tracking.LOCAL_LIBRARY_LIST_KEY
+import com.nuvio.tv.core.tracking.supportsMembershipFor
+import com.nuvio.tv.data.local.StartupAuthNotice
+import com.nuvio.tv.ui.components.posteroptions.TrackingRemovalConfirmationDialog
+import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
+private data class HomePosterOptionsTarget(
+    val item: MetaPreview,
+    val addonBaseUrl: String
+)
+
+private const val HOME_STABLE_GATE_TIMEOUT_MS = 5_000L
+
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    onNavigateToDetail: (String, String, String) -> Unit = { _, _, _ -> },
-    onContinueWatchingClick: (ContinueWatchingItem) -> Unit = {},
+    onNavigateToDetail: (String, String, String) -> Unit,
+    onContinueWatchingClick: (ContinueWatchingItem) -> Unit = { item ->
+        onNavigateToDetail(
+            when (item) {
+                is ContinueWatchingItem.InProgress -> item.progress.contentId
+                is ContinueWatchingItem.NextUp -> item.info.contentId
+            },
+            when (item) {
+                is ContinueWatchingItem.InProgress -> item.progress.contentType
+                is ContinueWatchingItem.NextUp -> item.info.contentType
+            },
+            ""
+        )
+    },
     onContinueWatchingStartFromBeginning: (ContinueWatchingItem) -> Unit = onContinueWatchingClick,
     onContinueWatchingPlayManually: (ContinueWatchingItem) -> Unit = onContinueWatchingClick,
     onNavigateToCatalogSeeAll: (String, String, String) -> Unit = { _, _, _ -> },
-    onNavigateToFolderDetail: (String, String) -> Unit = { _, _ -> }
+    onNavigateToFolderDetail: (String, String) -> Unit = { _, _ -> },
+    onNavigateToRoute: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Imagem e dados padrão estilo Stranger Things (Foto 2)
-    val backdropUrl = "https://images.ctfassets.net/4cd45et68cgf/7LrDuWeCiyygOqAaSYcWSj/c2b489a24d26ccb271d5334adbc5f307/Stranger_Things_S4_Backdrop.jpg"
-    val title = "STRANGER THINGS"
-    val rankingText = "#1 in TV Shows Today"
-    val synopsis = "When a young boy vanishes, a small town uncovers a mystery involving secret experiments, terrifying supernatural forces and one strange little girl."
-    val rating = "TV-14"
+    // Home was the only major screen without a lifecycle observer, so nothing ever told it to
+    // look at its catalogs again.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.beginShuffleHomeVisit()
+                viewModel.refreshHomeCatalogsIfStale()
+                viewModel.refreshContinueWatchingIfReleased()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    // Keep the production home data-driven so a prototype on the base branch cannot replace it.
+    val modernPresentation by viewModel.modernHomePresentation.collectAsStateWithLifecycle()
+    val initialCwResolved by viewModel.initialCwResolved.collectAsStateWithLifecycle()
+    val scrollToTopTrigger by viewModel.scrollToTopTrigger.collectAsStateWithLifecycle()
+    val effectiveAutoplayEnabled by viewModel.effectiveAutoplayEnabled.collectAsStateWithLifecycle(
+        initialValue = false
+    )
+    val hasCatalogContent = uiState.catalogRows.any { it.items.isNotEmpty() }
+    val hasCollectionContent = uiState.homeRows.any { it is HomeRow.CollectionRow }
+    val hasHeroContent = uiState.heroItems.isNotEmpty()
+    val modernPresentationReady =
+        uiState.homeLayout != HomeLayout.MODERN ||
+            modernPresentation.rows.list.isNotEmpty() ||
+            (uiState.heroSectionEnabled && hasHeroContent && !hasCatalogContent && !hasCollectionContent)
+    var showHomeContentWithAnimation by rememberSaveable { mutableStateOf(false) }
+    var hasShownInitialHomeContent by rememberSaveable { mutableStateOf(false) }
+    // Once we've shown stable home content, never go back to loading gate.
+    var homeStableGateReleased by rememberSaveable { mutableStateOf(false) }
+    // Track that catalog loading has started at least once (isLoading went true→false).
+    var catalogLoadingStarted by rememberSaveable { mutableStateOf(false) }
+    var posterOptionsTarget by remember { mutableStateOf<HomePosterOptionsTarget?>(null) }
+
+    LaunchedEffect(uiState.homeLayout) {
+        if (uiState.homeLayout != HomeLayout.MODERN) {
+            HeroBackdropState.update(null)
+        }
+    }
+
+    // Notify ViewModel of locale changes after activity recreation
+    LaunchedEffect(Unit) {
+        viewModel.notifyLocaleChanged()
+    }
+
+    val movieWatchedStatus = uiState.movieWatchedStatus
+    // Use a stable lambda whose identity NEVER changes. The lambda captures
+    // movieWatchedStatus via rememberUpdatedState so it always reads the latest
+    // value without forcing downstream recomposition from lambda identity change.
+    val latestMovieWatchedStatus = androidx.compose.runtime.rememberUpdatedState(movieWatchedStatus)
+    val isCatalogItemWatched: (MetaPreview) -> Boolean = remember {
+        { item: MetaPreview -> latestMovieWatchedStatus.value[homeItemStatusKey(item.id, item.apiType)] == true }
+    }
+    val onCatalogItemLongPress: (MetaPreview, String) -> Unit = remember {
+        { item, addonBaseUrl ->
+            posterOptionsTarget = HomePosterOptionsTarget(item, addonBaseUrl)
+            viewModel.refreshPosterLibraryStatus(item)
+        }
+    }
+
+    val onNavigateToDetailStable = remember(onNavigateToDetail) { onNavigateToDetail }
+    val latestContinueWatchingClickAction = androidx.compose.runtime.rememberUpdatedState(uiState.continueWatchingClickAction)
+    val onContinueWatchingClickStable = remember(onContinueWatchingClick, onNavigateToDetail) {
+        { item: ContinueWatchingItem ->
+            if (latestContinueWatchingClickAction.value.opensDetails(item)) {
+                when (item) {
+                    is ContinueWatchingItem.InProgress -> onNavigateToDetail(item.progress.contentId, item.progress.contentType, "")
+                    is ContinueWatchingItem.NextUp -> onNavigateToDetail(item.info.contentId, item.info.contentType, "")
+                }
+            } else {
+                onContinueWatchingClick(item)
+            }
+        }
+    }
+    val onContinueWatchingStartFromBeginningStable = remember(onContinueWatchingStartFromBeginning) { onContinueWatchingStartFromBeginning }
+    val onContinueWatchingPlayManuallyStable = remember(onContinueWatchingPlayManually) { onContinueWatchingPlayManually }
+    val onNavigateToCatalogSeeAllStable = remember(onNavigateToCatalogSeeAll) { onNavigateToCatalogSeeAll }
+    val onNavigateToFolderDetailStable = remember(onNavigateToFolderDetail) { onNavigateToFolderDetail }
+    val onRemoveContinueWatchingStable = remember(viewModel) {
+        { contentId: String, season: Int?, episode: Int?, isNextUp: Boolean ->
+            viewModel.onEvent(HomeEvent.OnRemoveContinueWatching(contentId, season, episode, isNextUp))
+        }
+    }
+
+    LaunchedEffect(
+        uiState.isLoading,
+        hasCatalogContent,
+        hasCollectionContent,
+        hasHeroContent,
+        initialCwResolved,
+        modernPresentationReady
+    ) {
+        // Track that addons are known (even if isLoading flipped too fast to catch).
+        if (uiState.installedAddonsCount > 0) {
+            catalogLoadingStarted = true
+        }
+        // Wait until catalog loading has completed with content AND the CW
+        // pipeline has completed its first emission.
+        if (!homeStableGateReleased &&
+            catalogLoadingStarted &&
+            !uiState.isLoading &&
+            initialCwResolved &&
+            modernPresentationReady &&
+            // When addons are installed, require at least one catalog row.
+            (hasCatalogContent || uiState.installedAddonsCount == 0)
+        ) {
+            Log.d("HomeGate", "RELEASE: catalogs=$hasCatalogContent cwResolved=$initialCwResolved cwItems=${uiState.continueWatchingItems.size} addons=${uiState.installedAddonsCount}")
+            homeStableGateReleased = true
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        // Safety timeout — if catalogs and CW haven't loaded within this
+        // window, show whatever is available.  Covers edge cases like
+        // clean cache (addons loading from remote sync) and users with
+        // no addons at all.
+        delay(HOME_STABLE_GATE_TIMEOUT_MS)
+        if (!homeStableGateReleased) {
+            Log.d("HomeGate", "RELEASE timeout: isLoading=${uiState.isLoading} cwResolved=$initialCwResolved catalogs=$hasCatalogContent cwItems=${uiState.continueWatchingItems.size}")
+            homeStableGateReleased = true
+        }
+    }
+
+    val posterCardStyle = remember(
+        uiState.posterCardWidthDp,
+        uiState.posterCardCornerRadiusDp
+    ) {
+        val computedHeightDp = (uiState.posterCardWidthDp * 1.5f).roundToInt()
+        PosterCardStyle(
+            width = uiState.posterCardWidthDp.dp,
+            height = computedHeightDp.dp,
+            cornerRadius = uiState.posterCardCornerRadiusDp.dp,
+            focusedBorderWidth = PosterCardDefaults.Style.focusedBorderWidth,
+            focusedScale = PosterCardDefaults.Style.focusedScale
+        )
+    }
+
+    val noAddonsError = stringResource(R.string.home_empty_no_sources_title)
+    val noCatalogAddonsError = stringResource(R.string.home_error_no_catalog_addons)
+    val hasAnyContent = uiState.catalogRows.isNotEmpty() ||
+        (uiState.continueWatchingEnabled && uiState.continueWatchingItems.isNotEmpty()) ||
+        uiState.heroItems.isNotEmpty() ||
+        hasCollectionContent
+    val showStartupLoader = when {
+        !uiState.layoutPreferencesReady -> true
+        uiState.isLoading && !hasAnyContent -> true
+        uiState.error == noAddonsError && uiState.catalogRows.isEmpty() -> !homeStableGateReleased
+        uiState.error == noCatalogAddonsError && uiState.catalogRows.isEmpty() && !hasCollectionContent && !hasHeroContent -> !homeStableGateReleased
+        uiState.error != null && uiState.catalogRows.isEmpty() -> false
+        !uiState.isLoading && !hasAnyContent -> !homeStableGateReleased
+        else -> !homeStableGateReleased || !modernPresentationReady || !showHomeContentWithAnimation
+    }
+
+    // Reports the home screen as fully drawn once it leaves the loading state so startup timing is measurable and post-launch work can be deferred.
+    ReportDrawnWhen { !showStartupLoader }
+
+    val startupLoadingState = LocalStartupLoadingState.current
+    val showHomeLoader = shouldShowHomeStartupLoader(
+        loading = showStartupLoader,
+        sharedSplashEnabled = LocalStartupSplashEnabled.current,
+        startupComplete = startupLoadingState?.complete != false
+    )
+    LaunchedEffect(showStartupLoader, startupLoadingState) {
+        if (!showStartupLoader) {
+            startupLoadingState?.complete = true
+        }
+    }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF141414))
+        modifier = Modifier.fillMaxSize()
     ) {
-        // 1. BACKDROP AO FUNDO (Imagem de destaque)
-        AsyncImage(
-            model = backdropUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .fillMaxHeight(0.90f)
-                .align(Alignment.TopEnd)
-        )
+        when {
+            !uiState.layoutPreferencesReady -> {
+                Unit
+            }
 
-        // 2. GRADIENTES OFICIAIS NETFLIX
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color(0xFF141414),
-                            Color(0xFF141414).copy(alpha = 0.98f),
-                            Color(0xFF141414).copy(alpha = 0.70f),
-                            Color.Transparent
-                        ),
-                        startX = 0f,
-                        endX = 1300f
-                    )
-                )
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color(0xFF141414).copy(alpha = 0.6f),
-                            Color(0xFF141414)
-                        ),
-                        startY = 350f
-                    )
-                )
-        )
+            uiState.isLoading && !hasAnyContent -> {
+                Unit
+            }
 
-        // 3. TAG TV-14 NO CANTO DIREITO
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 40.dp)
-                .offset(y = 40.dp)
-                .background(Color(0x80000000))
-                .border(1.dp, Color(0x66FFFFFF))
-                .padding(horizontal = 10.dp, vertical = 4.dp)
-        ) {
-            Text(
-                text = rating,
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        // 4. CORPO DA TELA
-        Row(modifier = Modifier.fillMaxSize()) {
-            
-            // MENU LATERAL
-            NetflixSidebar()
-
-            // INFORMAÇÕES DO FILME EM DESTAQUE
-            Column(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .weight(1f)
-                    .padding(start = 28.dp, top = 44.dp)
-            ) {
-                // Selo N SERIES
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "N",
-                        color = Color(0xFFE50914),
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                    Text(
-                        text = "S E R I E S",
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Título
-                Text(
-                    text = title,
-                    fontSize = 52.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White,
-                    letterSpacing = (-1).sp,
-                    lineHeight = 54.sp,
-                    modifier = Modifier.width(550.dp)
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Selo Top 10
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+            uiState.error == noAddonsError && uiState.catalogRows.isEmpty() -> {
+                if (!homeStableGateReleased) {
+                    Unit
+                } else {
                     Box(
-                        modifier = Modifier
-                            .background(Color(0xFFE50914), RoundedCornerShape(2.dp))
-                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "TOP\n10",
-                            color = Color.White,
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Black,
-                            lineHeight = 9.sp
+                            text = stringResource(R.string.home_no_addons),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = NuvioTheme.colors.TextSecondary
                         )
                     }
-                    Text(
-                        text = rankingText,
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Sinopse
-                Text(
-                    text = synopsis,
-                    color = Color(0xFFE5E5E5),
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.width(480.dp)
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Botões Play e More Info
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    NetflixPrimaryPlayButton(onClick = { })
-                    NetflixSecondaryInfoButton(onClick = { })
+            uiState.error == noCatalogAddonsError && uiState.catalogRows.isEmpty() && !hasCollectionContent && !hasHeroContent -> {
+                if (!homeStableGateReleased) {
+                    Unit
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.home_no_catalog_addons),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = NuvioTheme.colors.TextSecondary
+                        )
+                    }
                 }
+            }
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Fileira Trending Now
-                Text(
-                    text = "Trending Now",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 17.sp,
-                    modifier = Modifier.padding(bottom = 10.dp)
+            uiState.error != null && uiState.catalogRows.isEmpty() -> {
+                ErrorState(
+                    message = uiState.error ?: stringResource(R.string.error_generic),
+                    onRetry = { viewModel.onEvent(HomeEvent.OnRetry) }
                 )
+            }
 
-                NetflixThumbnailRow()
+            !uiState.isLoading && !hasAnyContent -> {
+                // Don't show "no catalogs" until the stable gate has released —
+                // addons may still be loading from remote after a cache clear.
+                if (!homeStableGateReleased) {
+                    Unit
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.web_no_catalogs),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = NuvioTheme.colors.TextSecondary
+                        )
+                    }
+                }
+            }
 
-                Spacer(modifier = Modifier.height(26.dp))
+            else -> {
+                // On first launch, wait for stable content before revealing home.
+                // Once released, never go back to loading (homeStableGateReleased is rememberSaveable).
+                if (!homeStableGateReleased) {
+                    Unit
+                } else if (!modernPresentationReady) {
+                    Unit
+                } else {
+                    // Flip showHomeContentWithAnimation on the next frame so
+                    // AnimatedVisibility can run its enter transition.
+                    LaunchedEffect(Unit) {
+                        if (!showHomeContentWithAnimation) {
+                            kotlinx.coroutines.yield()
+                            showHomeContentWithAnimation = true
+                        }
+                    }
+                    LaunchedEffect(showHomeContentWithAnimation) {
+                        if (showHomeContentWithAnimation) {
+                            hasShownInitialHomeContent = true
+                        }
+                    }
+                    // Keep loading visible during the single-frame gap before animation starts.
+                    if (!showHomeContentWithAnimation) {
+                        Unit
+                    }
+                    AnimatedVisibility(
+                        visible = showHomeContentWithAnimation,
+                        enter = if (hasShownInitialHomeContent) {
+                            EnterTransition.None
+                        } else {
+                            fadeIn(animationSpec = tween(320)) +
+                                slideInVertically(
+                                    initialOffsetY = { it / 24 },
+                                    animationSpec = tween(320)
+                                )
+                        }
+                    ) {
+                        when (uiState.homeLayout) {
+                            HomeLayout.CLASSIC -> ClassicHomeRoute(
+                                viewModel = viewModel,
+                                uiState = uiState,
+                                posterCardStyle = posterCardStyle,
+                                onNavigateToDetail = onNavigateToDetailStable,
+                                onContinueWatchingClick = onContinueWatchingClickStable,
+                                onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginningStable,
+                                onContinueWatchingPlayManually = onContinueWatchingPlayManuallyStable,
+                                showContinueWatchingManualPlayOption = effectiveAutoplayEnabled,
+                                onNavigateToCatalogSeeAll = onNavigateToCatalogSeeAllStable,
+                                onNavigateToFolderDetail = onNavigateToFolderDetailStable,
+                                isCatalogItemWatched = isCatalogItemWatched,
+                                onCatalogItemLongPress = onCatalogItemLongPress
+                            )
+
+                            HomeLayout.GRID -> GridHomeRoute(
+                                viewModel = viewModel,
+                                uiState = uiState,
+                                posterCardStyle = posterCardStyle,
+                                onNavigateToDetail = onNavigateToDetailStable,
+                                onContinueWatchingClick = onContinueWatchingClickStable,
+                                onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginningStable,
+                                onContinueWatchingPlayManually = onContinueWatchingPlayManuallyStable,
+                                showContinueWatchingManualPlayOption = effectiveAutoplayEnabled,
+                                onNavigateToCatalogSeeAll = onNavigateToCatalogSeeAllStable,
+                                onNavigateToFolderDetail = onNavigateToFolderDetailStable,
+                                isCatalogItemWatched = isCatalogItemWatched,
+                                onCatalogItemLongPress = onCatalogItemLongPress
+                            )
+
+                            HomeLayout.MODERN -> ModernHomeRoute(
+                                viewModel = viewModel,
+                                uiState = uiState,
+                                onNavigateToDetail = onNavigateToDetailStable,
+                                onContinueWatchingClick = onContinueWatchingClickStable,
+                                onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginningStable,
+                                onContinueWatchingPlayManually = onContinueWatchingPlayManuallyStable,
+                                showContinueWatchingManualPlayOption = effectiveAutoplayEnabled,
+                                onNavigateToFolderDetail = onNavigateToFolderDetailStable,
+                                onNavigateToRoute = onNavigateToRoute,
+                                isCatalogItemWatched = isCatalogItemWatched,
+                                onCatalogItemLongPress = onCatalogItemLongPress
+                            )
+                        }
+                    }
+                }
             }
         }
-    }
-}
 
-@Composable
-fun NetflixPrimaryPlayButton(onClick: () -> Unit) {
-    var isFocused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (isFocused) 1.08f else 1.0f, label = "scale")
+        if (showHomeLoader) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                LoadingIndicator()
+            }
+        }
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .scale(scale)
-            .height(42.dp)
-            .width(115.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(if (isFocused) Color.White else Color(0xFFE5E5E5))
-            .border(
-                width = if (isFocused) 3.dp else 0.dp,
-                color = if (isFocused) Color.LightGray else Color.Transparent,
-                shape = RoundedCornerShape(4.dp)
-            )
-            .onFocusChanged { isFocused = it.isFocused }
-            .focusable()
-    ) {
-        Icon(
-            imageVector = Icons.Default.PlayArrow,
-            contentDescription = null,
-            tint = Color.Black,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = "Play",
-            color = Color.Black,
-            fontWeight = FontWeight.Bold,
-            fontSize = 15.sp
-        )
-    }
-}
-
-@Composable
-fun NetflixSecondaryInfoButton(onClick: () -> Unit) {
-    var isFocused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (isFocused) 1.08f else 1.0f, label = "scale")
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .scale(scale)
-            .height(42.dp)
-            .width(140.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(Color(0xFF6D6D6E).copy(alpha = if (isFocused) 0.9f else 0.65f))
-            .border(
-                width = if (isFocused) 2.dp else 0.dp,
-                color = if (isFocused) Color.White else Color.Transparent,
-                shape = RoundedCornerShape(4.dp)
-            )
-            .onFocusChanged { isFocused = it.isFocused }
-            .focusable()
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Info,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = "More info",
-            color = Color.White,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 15.sp
-        )
-    }
-}
-
-@Composable
-fun NetflixSidebar() {
-    Column(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(52.dp)
-            .background(Color.Transparent)
-            .padding(top = 40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(22.dp)
-    ) {
-        Icon(Icons.Default.Search, null, tint = Color(0xFFB3B3B3), modifier = Modifier.size(20.dp))
-        Icon(Icons.Default.Home, null, tint = Color.White, modifier = Modifier.size(22.dp))
-        Icon(Icons.Default.Tv, null, tint = Color(0xFFB3B3B3), modifier = Modifier.size(20.dp))
-        Icon(Icons.Default.Movie, null, tint = Color(0xFFB3B3B3), modifier = Modifier.size(20.dp))
-        Icon(Icons.Default.Whatshot, null, tint = Color(0xFFB3B3B3), modifier = Modifier.size(20.dp))
-        Icon(Icons.Default.Add, null, tint = Color(0xFFB3B3B3), modifier = Modifier.size(22.dp))
-    }
-}
-
-@Composable
-fun NetflixThumbnailRow() {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        itemsIndexed(List(8) { it }) { _, _ ->
-            var isFocused by remember { mutableStateOf(false) }
-            val scale by animateFloatAsState(if (isFocused) 1.08f else 1.0f, label = "thumbScale")
-
+        val startupAuthNotice = uiState.startupAuthNotice
+        if (startupAuthNotice != null) {
             Box(
                 modifier = Modifier
-                    .scale(scale)
-                    .width(185.dp)
-                    .height(105.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(Color(0xFF262626))
-                    .border(
-                        width = if (isFocused) 3.dp else 0.dp,
-                        color = if (isFocused) Color.White else Color.Transparent,
-                        shape = RoundedCornerShape(3.dp)
+                    .align(Alignment.TopCenter)
+                    .padding(top = NuvioTheme.spacing.xl)
+                    .background(
+                        color = Color(0xFF5A1C1C),
+                        shape = RoundedCornerShape(10.dp)
                     )
-                    .onFocusChanged { isFocused = it.isFocused }
-                    .focusable()
+                    .padding(horizontal = 18.dp, vertical = 10.dp)
             ) {
                 Text(
-                    text = "N",
-                    color = Color(0xFFE50914),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Black,
-                    modifier = Modifier.padding(6.dp)
+                    text = when (startupAuthNotice) {
+                        StartupAuthNotice.NUVIO -> stringResource(R.string.auth_notice_nuvio_logged_out)
+                        StartupAuthNotice.TRAKT -> stringResource(R.string.auth_notice_trakt_logged_out)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = NuvioTheme.colors.TextPrimary
                 )
             }
         }
     }
+
+    val selectedPoster = posterOptionsTarget
+    if (selectedPoster != null) {
+        val item = selectedPoster.item
+        val statusKey = homeItemStatusKey(item.id, item.apiType)
+        val isSeries = isSeriesLikeType(item.apiType)
+        HomePosterOptionsDialog(
+            title = item.name,
+            isInLibrary = uiState.posterLibraryMembership[statusKey] == true,
+            isLibraryPending = statusKey in uiState.posterLibraryPending,
+            showManageLists = uiState.librarySourceMode != LibrarySourceMode.LOCAL,
+            isWatched = movieWatchedStatus[statusKey] == true,
+            isWatchedPending = statusKey in uiState.movieWatchedPending,
+            onDismiss = { posterOptionsTarget = null },
+            onDetails = {
+                onNavigateToDetail(item.id, item.apiType, selectedPoster.addonBaseUrl)
+                posterOptionsTarget = null
+            },
+            onToggleLibrary = {
+                if (uiState.librarySourceMode != LibrarySourceMode.LOCAL) {
+                    viewModel.openPosterListPicker(item, selectedPoster.addonBaseUrl)
+                } else {
+                    viewModel.togglePosterLibrary(item, selectedPoster.addonBaseUrl)
+                }
+                posterOptionsTarget = null
+            },
+            onToggleWatched = {
+                if (isSeries) {
+                    viewModel.togglePosterSeriesWatched(item)
+                } else {
+                    viewModel.togglePosterMovieWatched(item)
+                }
+                posterOptionsTarget = null
+            }
+        )
+    }
+
+    if (uiState.showPosterListPicker) {
+        val localTab = LibraryListTab(
+            key = LOCAL_LIBRARY_LIST_KEY,
+            title = stringResource(R.string.trakt_library_source_nuvio),
+            type = LibraryListTab.Type.WATCHLIST
+        )
+        val contentType = uiState.posterListPickerContentType.orEmpty()
+        val destinationTabs = uiState.libraryListTabs.filter { tab ->
+            tab.supportsMembershipFor(contentType)
+        }
+        PosterListPickerDialog(
+            title = uiState.posterListPickerTitle ?: stringResource(R.string.detail_lists_fallback),
+            tabs = listOf(localTab) + destinationTabs,
+            membership = uiState.posterListPickerMembership,
+            isPending = uiState.posterListPickerPending,
+            error = uiState.posterListPickerError,
+            onToggle = { key -> viewModel.togglePosterListPickerMembership(key) },
+            onSave = { viewModel.savePosterListPickerMembership() },
+            onDismiss = { viewModel.dismissPosterListPicker() }
+        )
+    }
+
+    if (uiState.posterListPickerRemovalConfirmations.isNotEmpty()) {
+        TrackingRemovalConfirmationDialog(
+            itemTitle = uiState.posterListPickerTitle.orEmpty(),
+            confirmations = uiState.posterListPickerRemovalConfirmations,
+            isPending = uiState.posterListPickerPending,
+            onConfirm = viewModel::confirmPosterListPickerRemoval,
+            onDismiss = viewModel::cancelPosterListPickerRemoval
+        )
+    }
 }
+
+@Composable
+private fun ClassicHomeRoute(
+    viewModel: HomeViewModel,
+    uiState: HomeUiState,
+    posterCardStyle: PosterCardStyle,
+    onNavigateToDetail: (String, String, String) -> Unit,
+    onContinueWatchingClick: (ContinueWatchingItem) -> Unit,
+    onContinueWatchingStartFromBeginning: (ContinueWatchingItem) -> Unit,
+    onContinueWatchingPlayManually: (ContinueWatchingItem) -> Unit,
+    showContinueWatchingManualPlayOption: Boolean,
+    onNavigateToCatalogSeeAll: (String, String, String) -> Unit,
+    onNavigateToFolderDetail: (String, String) -> Unit = { _, _ -> },
+    isCatalogItemWatched: (MetaPreview) -> Boolean,
+    onCatalogItemLongPress: (MetaPreview, String) -> Unit
+) {
+    val focusState by viewModel.focusState.collectAsStateWithLifecycle()
+    val scrollToTopTrigger by viewModel.scrollToTopTrigger.collectAsStateWithLifecycle()
+    ClassicHomeContent(
+        uiState = uiState,
+        posterCardStyle = posterCardStyle,
+        focusState = focusState,
+        scrollToTopTrigger = scrollToTopTrigger,
+        trailerPreviewUrls = viewModel.trailerPreviewUrls,
+        trailerPreviewAudioUrls = viewModel.trailerPreviewAudioUrls,
+        onNavigateToDetail = onNavigateToDetail,
+        onContinueWatchingClick = onContinueWatchingClick,
+        onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginning,
+        onContinueWatchingPlayManually = onContinueWatchingPlayManually,
+        showContinueWatchingManualPlayOption = showContinueWatchingManualPlayOption,
+        onNavigateToCatalogSeeAll = onNavigateToCatalogSeeAll,
+        onNavigateToFolderDetail = onNavigateToFolderDetail,
+        onMarkContinueWatchingWatched = remember(viewModel) {
+            { item -> viewModel.onEvent(HomeEvent.OnMarkContinueWatchingWatched(item)) }
+        },
+        onRemoveContinueWatching = { contentId, season, episode, isNextUp ->
+            viewModel.onEvent(HomeEvent.OnRemoveContinueWatching(contentId, season, episode, isNextUp))
+        },
+        isCatalogItemWatched = isCatalogItemWatched,
+        onCatalogItemLongPress = onCatalogItemLongPress,
+        onRequestTrailerPreview = { item ->
+            viewModel.requestTrailerPreview(item)
+        },
+        onItemFocus = { item ->
+            viewModel.onItemFocus(item)
+        },
+        onSaveFocusState = { vi, vo, rk, ikm, m, ma, ri, ii ->
+            viewModel.saveFocusState(vi, vo, rk, ikm, m, ma, ri, ii)
+            // Authoritative: this is the row that actually held focus when Home went away.
+            viewModel.setLiveFocusedRowKey(rk)
+        },
+        onFocusedRowKeyChanged = remember(viewModel) {
+            { key: String? -> viewModel.setLiveFocusedRowKey(key) }
+        },
+        onRequestLazyCatalogLoad = remember(viewModel) {
+            { catalogKey: String -> viewModel.requestLazyCatalogLoad(catalogKey) }
+        }
+    )
+}
+
+@Composable
+private fun GridHomeRoute(
+    viewModel: HomeViewModel,
+    uiState: HomeUiState,
+    posterCardStyle: PosterCardStyle,
+    onNavigateToDetail: (String, String, String) -> Unit,
+    onContinueWatchingClick: (ContinueWatchingItem) -> Unit,
+    onContinueWatchingStartFromBeginning: (ContinueWatchingItem) -> Unit,
+    onContinueWatchingPlayManually: (ContinueWatchingItem) -> Unit,
+    showContinueWatchingManualPlayOption: Boolean,
+    onNavigateToCatalogSeeAll: (String, String, String) -> Unit,
+    onNavigateToFolderDetail: (String, String) -> Unit = { _, _ -> },
+    isCatalogItemWatched: (MetaPreview) -> Boolean,
+    onCatalogItemLongPress: (MetaPreview, String) -> Unit
+) {
+    val gridFocusState by viewModel.gridFocusState.collectAsStateWithLifecycle()
+    val scrollToTopTrigger by viewModel.scrollToTopTrigger.collectAsStateWithLifecycle()
+    GridHomeContent(
+        onFocusedRowKeyChanged = remember(viewModel) {
+            { key: String? -> viewModel.setLiveFocusedRowKey(key) }
+        },
+        uiState = uiState,
+        posterCardStyle = posterCardStyle,
+        gridFocusState = gridFocusState,
+        scrollToTopTrigger = scrollToTopTrigger,
+        onNavigateToDetail = onNavigateToDetail,
+        onContinueWatchingClick = onContinueWatchingClick,
+        onContinueWatchingStartFromBeginning = onContinueWatchingStartFromBeginning,
+        onContinueWatchingPlayManually = onContinueWatchingPlayManually,
+        showContinueWatchingManualPlayOption = showContinueWatchingManualPlayOption,
+        onNavigateToCatalogSeeAll = onNavigateToCatalogSeeAll,
+        onNavigateToFolderDetail = onNavigateToFolderDetail,
+        onMarkContinueWatchingWatched = remember(viewModel) {
+            { item -> viewModel.onEvent(HomeEvent.OnMarkContinueWatchingWatched(item)) }
+        },
+        onRemoveContinueWatching = remember(viewModel) {
+            { contentId, season, episode, isNextUp ->
+                viewModel.onEvent(HomeEvent.OnRemoveContinueWatching(contentId, season, episode, isNextUp))
+            }
+        },
+        isCatalogItemWatched = isCatalogItemWatched,
+        onCatalogItemLongPress = onCatalogItemLongPress,
+        onItemFocus = remember(viewModel) {
+            { item ->
+                viewModel.onItemFocus(item)
+            }
+        },
+        onSaveGridFocusState = remember(viewModel) {
+            { vi, vo, key ->
+                viewModel.saveGridFocusState(vi, vo, focusedItemKey = key)
+            }
+        }
+    )
+}
+
+@Composable
+private fun ModernHomeRoute(
+    viewModel: HomeViewModel,
+    uiState: HomeUiState,
+    onNavigateToDetail: (String, String, String) -> Unit,
+    onContinueWatchingClick: (ContinueWatchingItem) -> Unit,
+    onContinueWatchingStartFromBeginning: (ContinueWatchingItem) -> Unit,
+    onContinueWatchingPlayManually: (ContinueWatchingItem) -> Unit,
+    showContinueWatchingManualPlayOption: Boolean,
+    onNavigateToFolderDetail: (String, String) -> Unit = { _, _ -> },
+    onNavigateToRoute: (String) -> Unit,
+    isCatalogItemWatched: (MetaPreview) -> Boolean,
+    onCatalogItemLongPress: (MetaPreview, String) -> Unit
+) {
+    val focusState by viewModel.focusState.collectAsStateWithLifecycle()
+    val scrollToTopTrigger by viewModel.scrollToTopTrigger.collectAsStateWithLifecycle()
+    val modernPresentation by viewModel.modernHomePresentation.collectAsStateWithLifecycle()
+    // Passed down as State, not values: enrichment changes on most focus moves, and reading it
+    // here recomposed all of the home content for each one.
+    val enrichingItemId = viewModel.enrichingItemId.collectAsStateWithLifecycle()
+    val enrichedPreviews = viewModel.enrichedPreviews.collectAsStateWithLifecycle()
+    val failedEnrichmentIds = viewModel.failedEnrichmentIds.collectAsStateWithLifecycle()
+    val requestTrailerPreview = remember(viewModel) {
+        { itemId: String, title: String, releaseInfo: String?, apiType: String ->
+            viewModel.requestTrailerPreview(itemId, title, releaseInfo, apiType)
+        }
+    }
+    val loadMoreCatalog = remember(viewModel) {
+        { catalogId: String, addonId: String, type: String ->
+            viewModel.onEvent(HomeEvent.OnLoadMoreCatalog(catalogId, addonId, type))
+        }
+    }
+    val requestLazyCatalogLoad = remember(viewModel) {
+        { catalogKey: String -> viewModel.requestLazyCatalogLoad(catalogKey) }
+    }
+    val removeContinueWatching = remember(viewModel) {
+        { contentId: String, season: Int?, episode: Int?, isNextUp: Boolean ->
+            viewModel.onEvent(HomeEvent.OnRemoveContinueWatching(contentId, season, episode, isNextUp))
+        }
+    }
+    val saveModernFocusState = remember(viewModel) {
+        { vi: Int, vo: Int, rk: String?, ikm: Map<String, String>, m: Map<String, Int>, ma: Map<String, String>, ri: Int, ii: Int ->
+            viewModel.saveFocusState(vi, vo, rk, ikm, m, ma, ri, ii)
+            // Authoritative: this is the row that actually held focus when Home went away.
+            viewModel.setLiveFocusedRowKey(rk)
+        }
+    }
+    val preloadAdjacentItem = remember(viewModel) {
+        { item: MetaPreview ->
+            viewModel.preloadAdjacentItem(item)
+        }
+    }
+    NuvioHtmlSkinHome(
+        presentation = modernPresentation,
+        onNavigateToDetail = onNavigateToDetail,
+        onContinueWatchingClick = onContinueWatchingClick,
+        onNavigateToFolderDetail = onNavigateToFolderDetail,
+        onNavigateToRoute = onNavigateToRoute,
+        onLoadMoreCatalog = loadMoreCatalog,
+        onRequestLazyCatalogLoad = requestLazyCatalogLoad
+    )
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun HomePosterOptionsDialog(
+    title: String,
+    isInLibrary: Boolean,
+    isLibraryPending: Boolean,
+    showManageLists: Boolean,
+    isWatched: Boolean,
+    isWatchedPending: Boolean,
+    onDismiss: () -> Unit,
+    onDetails: () -> Unit,
+    onToggleLibrary: () -> Unit,
+    onToggleWatched: () -> Unit
+) {
+    val primaryFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        primaryFocusRequester.requestFocus()
+    }
+
+    NuvioDialog(
+        onDismiss = onDismiss,
+        title = title,
+        subtitle = stringResource(R.string.home_poster_dialog_subtitle)
+    ) {
+        Button(
+            onClick = onDetails,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(primaryFocusRequester),
+            colors = ButtonDefaults.colors(
+                containerColor = NuvioTheme.colors.BackgroundCard,
+                contentColor = NuvioTheme.colors.TextPrimary
+            )
+        ) {
+            Text(stringResource(R.string.cw_action_go_to_details))
+        }
+
+        Button(
+            onClick = onToggleLibrary,
+            enabled = !isLibraryPending,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.colors(
+                containerColor = NuvioTheme.colors.BackgroundCard,
+                contentColor = NuvioTheme.colors.TextPrimary
+            )
+        ) {
+            Text(
+                if (showManageLists) {
+                    stringResource(R.string.library_manage_lists)
+                } else {
+                    if (isInLibrary) {
+                        stringResource(R.string.hero_remove_from_library)
+                    } else {
+                        stringResource(R.string.hero_add_to_library)
+                    }
+                }
+            )
+        }
+
+        Button(
+            onClick = onToggleWatched,
+            enabled = !isWatchedPending,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.colors(
+                containerColor = NuvioTheme.colors.BackgroundCard,
+                contentColor = NuvioTheme.colors.TextPrimary
+            )
+        ) {
+            Text(
+                if (isWatched) {
+                    stringResource(R.string.hero_mark_unwatched)
+                } else {
+                    stringResource(R.string.hero_mark_watched)
+                }
+            )
+        }
+    }
+}
+

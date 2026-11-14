@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>NuvioTV · Skin Netflix 2019</title>
+<style>
+:root{--accent:#e50914;--green:#46d369;--muted:#8c8c8c;--font:"Helvetica Neue",Helvetica,Arial,Roboto,Inter,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#000;overflow:hidden;font-family:var(--font);color:#fff}
+#stage{position:absolute;width:1920px;height:1080px;transform-origin:0 0;background:#000;overflow:hidden}
+#home{position:absolute;inset:0;display:block}
+#home .bd{position:absolute;right:0;top:0;width:1360px;height:1080px;background-position:center;background-size:cover;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 42%);mask-image:linear-gradient(to right,transparent 0,#000 42%);transition:opacity .4s}
+#home .bd:after{content:"";position:absolute;inset:0;background:linear-gradient(to top,#000 0,rgba(0,0,0,0) 45%)}
+#rail{position:absolute;left:38px;top:0;bottom:0;width:64px;z-index:20}
+#rail .ic{position:absolute;left:0;width:64px;height:64px;display:flex;align-items:center;justify-content:center;opacity:.75;transition:transform .2s,opacity .2s;cursor:pointer}
+#rail svg{width:30px;height:30px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#rail .ic.act:after{content:"";position:absolute;bottom:6px;width:24px;height:4px;background:var(--accent)}
+#rail .ic.f{opacity:1;transform:scale(1.3)}
+#rail .ic.f svg{stroke-width:2.6}
+#home .info{position:absolute;left:155px;width:780px;transition:top .35s ease;z-index:3}
+#home.hero .info{top:230px}
+#home.rows .info{top:75px}
+.title{font-weight:900;line-height:1;text-shadow:2px 2px 8px rgba(0,0,0,.75);transition:font-size .35s}
+#home.hero .title{font-size:100px;letter-spacing:-1.5px}
+#home.rows .title{font-size:66px}
+.meta{display:flex;align-items:center;gap:14px;font-size:21px;margin:16px 0 8px}
+.meta .g{color:var(--green);font-weight:700}
+.meta .bx{background:#4d4d4d;padding:2px 10px;border-radius:3px;font-weight:700;font-size:18px}
+.meta .ol{border:2px solid #aaa;padding:0 8px;border-radius:3px;font-size:16px;font-weight:700}
+#home.hero .meta{opacity:0;height:0;margin:0;overflow:hidden}
+.tag{font-size:24px;font-weight:700;margin:16px 0 8px}
+.prog-hero{display:none;align-items:center;gap:14px;margin:14px 0}
+#home.rows.is-cont .prog-hero{display:flex}
+#home.rows.is-cont .meta,#home.rows.is-cont .syn,#home.rows.is-cont .ex-home{display:none}
+.prog-hero .bar{width:340px;height:6px;background:rgba(255,255,255,.3);border-radius:2px;overflow:hidden}
+.prog-hero .bar i{display:block;height:100%;background:var(--accent)}
+.prog-hero span{font-size:20px;color:#ccc;font-weight:600}
+.syn{font-size:25px;line-height:1.3;max-height:100px;overflow:hidden;text-shadow:1px 1px 4px #000;color:#efefef}
+.ex-home{margin-top:18px;font-size:21px;color:#b3b3b3;line-height:1.45}
+.ex-home .genres-row{color:#fff;font-weight:600}
+.btns{display:flex;gap:14px;margin-top:22px}
+.b{font-size:23px;font-weight:700;padding:10px 36px;border-radius:4px;background:rgba(110,110,115,.65);color:#fff;transition:transform .15s;cursor:pointer}
+.b.pl{background:#fff;color:#000}
+.b.f{outline:4px solid #fff;outline-offset:3px;background:#fff;color:#000;transform:scale(1.05)}
+#home.rows .btns{display:none}
+#rowsWrap{position:absolute;left:0;right:0;transition:top .35s ease;z-index:2}
+#home.hero #rowsWrap{top:750px}
+.row{position:absolute;left:0;right:0;height:395px;transition:opacity .3s}
+.row .rt{position:absolute;left:155px;top:0;font-size:26px;font-weight:700;color:#e5e5e5}
+.trk{position:absolute;left:155px;top:44px;display:flex;gap:14px;transition:transform .28s ease}
+.wm{position:absolute;right:54px;bottom:28px;font-weight:900;font-size:48px;color:var(--accent);letter-spacing:1.5px;z-index:3;text-shadow:0 2px 10px rgba(0,0,0,.8)}
+.p{position:relative;flex:0 0 auto;width:205px;height:300px;border-radius:3px;overflow:hidden;color:#fff;transition:transform .2s;background-color:#171717;background-size:cover;background-position:center;cursor:pointer}
+.p .pt{position:absolute;left:12px;right:12px;bottom:16px;font-weight:900;font-size:24px;line-height:1.05;text-shadow:2px 2px 6px rgba(0,0,0,.85)}
+.p .pr{position:absolute;left:0;bottom:0;height:5px;background:var(--accent)}
+.p.f{outline:5px solid #fff;outline-offset:-1px;z-index:5;transform:scale(1.03)}
+#emptyState{display:none;position:absolute;left:155px;top:430px;width:900px;font-size:28px;color:#aaa;line-height:1.4;z-index:4}
+#toast{position:absolute;left:50%;bottom:90px;transform:translateX(-50%);background:rgba(25,25,25,.96);border:2px solid #777;padding:16px 34px;font-size:25px;z-index:60;display:none;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="rail"></div>
+  <div id="home" class="hero">
+    <div class="bd" id="hBd"></div>
+    <div class="info">
+      <div class="title" id="hTitle"></div>
+      <div class="meta" id="hMeta"></div>
+      <div class="tag" id="hTag"></div>
+      <div class="prog-hero" id="hProg"><div class="bar"><i id="hProgBar"></i></div><span id="hProgTxt"></span></div>
+      <div class="syn" id="hSyn"></div>
+      <div class="ex-home" id="hExHome"></div>
+      <div class="btns">
+        <div class="b pl f" id="bPlay">▶&nbsp; Assistir</div>
+        <div class="b" id="bMore">Mais Info</div>
+      </div>
+    </div>
+    <div id="rowsWrap"></div>
+    <div class="wm">NUVIO</div>
+    <div id="emptyState">Nenhum catálogo disponível neste perfil.</div>
+  </div>
+  <div id="toast"></div>
+</div>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const SVG={
+ search:'<circle cx="10" cy="10" r="6.5"/><line x1="15" y1="15" x2="21" y2="21"/>',
+ home:'<path d="M3 11 12 3l9 8v10h-6v-7H9v7H3z"/>',
+ trend:'<polyline points="2,18 9,11 13,15 22,6"/><polyline points="16,6 22,6 22,12"/>',
+ tv:'<rect x="3" y="4" width="18" height="12"/><line x1="8" y1="20" x2="16" y2="20"/><line x1="12" y1="16" x2="12" y2="20"/>',
+ film:'<rect x="3" y="7" width="18" height="13"/><path d="M3 7l3-4 4 4M10 7l3-4 4 4"/>',
+ user:'<circle cx="9" cy="8" r="3.5"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><circle cx="18" cy="9" r="2.5"/>',
+ plus:'<line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>'
+};
+const RAIL=["search","home","trend","tv","film","user","plus"];
+const ROUTES={0:"search",2:"discover",5:"library",6:"addon_manager"};
+const S={section:1,zone:"btn",rail:false,railIdx:1,row:0,col:[],rows:[],catalog:[],btn:0,loadMoreRequested:new Set()};
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function fit(){const scale=Math.min(innerWidth/1920,innerHeight/1080),stage=$("#stage");stage.style.transform="scale("+scale+")";stage.style.left=((innerWidth-1920*scale)/2)+"px";stage.style.top=((innerHeight-1080*scale)/2)+"px";}
+addEventListener("resize",fit);fit();
+function toast(message){const node=$("#toast");node.textContent=message;node.style.display="block";clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.style.display="none",1800);}
+function nativeNavigate(route){if(window.NuvioBridge&&route)window.NuvioBridge.navigate(route);}
+function nativeOpen(item,action){if(item&&item.key&&window.NuvioBridge)window.NuvioBridge.openItem(item.key,action);}
+function buildRail(){const rail=$("#rail");rail.innerHTML=RAIL.map((name,index)=>'<div class="ic" data-i="'+index+'" style="top:'+(260+index*88)+'px"><svg viewBox="0 0 24 24">'+SVG[name]+'</svg></div>').join("");}
+function paintRail(){document.querySelectorAll("#rail .ic").forEach((element,index)=>{element.classList.toggle("act",index===S.section);element.classList.toggle("f",S.rail&&index===S.railIdx);});}
+buildRail();
+function rowsFor(section){
+ let rows=S.catalogRows||[];
+ if(section===3||section===4){
+  const wanted=section===3?"series":"movie";
+  rows=rows.map(row=>({...row,items:row.items.filter(item=>item.type===wanted)})).filter(row=>row.items.length);
+ }
+ return rows;
+}
+function enterHome(section,keep){
+ S.section=section;
+ S.rows=rowsFor(section);
+ if(!keep){S.col=S.rows.map(()=>0);S.row=0;S.zone="btn";S.rail=false;S.btn=0;}
+ if(S.row>=S.rows.length)S.row=Math.max(0,S.rows.length-1);
+ S.rows.forEach((row,index)=>{S.col[index]=Math.min(S.col[index]||0,Math.max(0,row.items.length-1));});
+ const empty=S.rows.length===0||!S.rows.some(row=>row.items.length);
+ $("#emptyState").style.display=empty?"block":"none";
+ $("#rowsWrap").innerHTML=S.rows.map((row,rowIndex)=>{
+  const cards=row.items.map(item=>{
+   const art=item.poster?'background-image:url("'+esc(item.poster).replace(/["\\]/g,"")+'")':"";
+   const progress=row.isContinue&&item.progress>0?'<span class="pr" style="width:'+Math.max(0,Math.min(100,item.progress))+'%"></span>':'';
+   return '<div class="p" data-key="'+encodeURIComponent(item.key)+'" style="'+art+'"><span class="pt">'+esc(item.title)+'</span>'+progress+'</div>';
+  }).join("");
+  return '<div class="row" style="top:'+(rowIndex*395)+'px"><div class="rt">'+esc(row.title)+'</div><div class="trk">'+cards+'</div></div>';
+ }).join("");
+ paintHome();
+}
+function homeItem(){
+ const row=S.rows[S.zone==="btn"?0:S.row];
+ return row&&row.items?row.items[S.col[S.zone==="btn"?0:S.row]||0]:null;
+}
+function metaHtml(item){
+ const parts=[];
+ if(item.imdb)parts.push('<span class="g">IMDb '+esc(item.imdb)+'</span>');
+ if(item.year)parts.push('<span>'+esc(item.year)+'</span>');
+ if(item.rating)parts.push('<span class="bx">'+esc(item.rating)+'</span>');
+ if(item.dur)parts.push('<span>'+esc(item.dur)+'</span>');
+ if(item.q)parts.push('<span class="ol">'+esc(item.q)+'</span>');
+ return parts.join("");
+}
+function paintHome(){
+ const home=$("#home"),item=homeItem(),currentRow=S.rows[S.row];
+ home.className="screen "+(S.zone==="btn"?"hero":"rows")+(S.zone==="row"&&currentRow&&currentRow.isContinue?" is-cont":"");
+ if(!item){$("#hTitle").textContent="";$("#hMeta").innerHTML="";$("#hSyn").textContent="";$("#hTag").textContent="";$("#hBd").style.backgroundImage="";paintRail();return;}
+ const isContinue=S.zone==="row"&&currentRow&&currentRow.isContinue;
+ $("#hBd").style.backgroundImage=item.backdrop?'url("'+String(item.backdrop).replace(/["\\]/g,"")+'")':(item.poster?'url("'+String(item.poster).replace(/["\\]/g,"")+'")':"none");
+ $("#hTitle").textContent=item.title||"";
+ $("#hMeta").innerHTML=metaHtml(item);
+ $("#hTag").textContent=isContinue?(item.episodeLabel||"Continuar assistindo"):(item.type==="series"?"Assistir série":"Assistir agora");
+ $("#hProgBar").style.width=(item.progress||0)+"%";
+ $("#hProgTxt").textContent=Math.max(0,100-(item.progress||0))+"% restante";
+ $("#hSyn").textContent=item.syn||"";
+ $("#hExHome").innerHTML=item.genres&&item.genres.length?'<div class="genres-row">'+item.genres.map(esc).join(" / ")+'</div>':"";
+ $("#bPlay").classList.toggle("f",!S.rail&&S.zone==="btn"&&S.btn===0);
+ $("#bMore").classList.toggle("f",!S.rail&&S.zone==="btn"&&S.btn===1);
+ if(S.zone==="row")$("#rowsWrap").style.top=(545-S.row*395)+"px";else $("#rowsWrap").style.top="";
+ document.querySelectorAll("#rowsWrap .row").forEach((row,index)=>{
+  row.style.opacity=(S.zone==="row"&&index<S.row)?0:1;
+  row.querySelectorAll(".p").forEach((poster,col)=>poster.classList.toggle("f",!S.rail&&S.zone==="row"&&index===S.row&&col===S.col[index]));
+  const track=row.querySelector(".trk"),col=S.col[index]||0;
+  if(track)track.style.transform="translateX("+(-Math.max(0,col-5)*219)+"px)";
+ });
+ paintRail();
+}
+function requestMore(row){
+ if(!row||!row.hasMore||!row.catalogId||!row.addonId||!row.apiType||!window.NuvioBridge)return;
+ const token=row.key+":"+row.pageCount;
+ if(S.loadMoreRequested.has(token))return;
+ S.loadMoreRequested.add(token);
+ window.NuvioBridge.loadMoreCatalog(row.catalogId,row.addonId,row.apiType);
+}
+function goSection(index){
+ S.rail=false;S.railIdx=index;
+ if(index===1){enterHome(1,false);return;}
+ if(index===3||index===4){enterHome(index,false);return;}
+ const route=ROUTES[index];if(route){nativeNavigate(route);return;}
+ enterHome(1,false);
+}
+function toRail(){S.rail=true;S.railIdx=S.section;paintRail();}
+function keyHome(key){
+ const rowCount=S.rows.length;
+ if(S.zone==="btn"){
+  if(key==="r")S.btn=1;
+  else if(key==="l"){if(S.btn===1)S.btn=0;else toRail();}
+  else if(key==="d"&&rowCount){S.zone="row";S.row=0;}
+  else if(key==="ok"){nativeOpen(homeItem(),S.btn===0?"play":"details");return;}
+ }else{
+  const row=S.rows[S.row],count=row?row.items.length:0;
+  if(key==="r"){
+   S.col[S.row]=Math.min(count-1,(S.col[S.row]||0)+1);
+   if(S.col[S.row]>=Math.max(0,count-3))requestMore(row);
+  }
+  else if(key==="l"){if((S.col[S.row]||0)>0)S.col[S.row]--;else toRail();}
+  else if(key==="d"&&S.row<rowCount-1){S.row++;S.col[S.row]=Math.min(S.col[S.row]||0,Math.max(0,S.rows[S.row].items.length-1));}
+  else if(key==="u"){if(S.row>0)S.row--;else{S.zone="btn";S.btn=0;}}
+  else if(key==="ok"){nativeOpen(homeItem(),"details");return;}
+ }
+ paintHome();
+}
+const KEYMAP={ArrowUp:"u",ArrowDown:"d",ArrowLeft:"l",ArrowRight:"r",Enter:"ok"," ":"ok",Escape:"bk",Backspace:"bk",10009:"bk",461:"bk",27:"bk",8:"bk",13:"ok",37:"l",38:"u",39:"r",40:"d"};
+document.addEventListener("keydown",event=>{
+ const key=KEYMAP[event.key]||KEYMAP[event.keyCode];if(!key)return;
+ event.preventDefault();
+ if(key==="bk"){window.NuvioSkin.back();return;}
+ if(S.rail){
+  if(key==="u")S.railIdx=Math.max(0,S.railIdx-1);
+  else if(key==="d")S.railIdx=Math.min(6,S.railIdx+1);
+  else if(key==="r")S.rail=false;
+  else if(key==="ok"){goSection(S.railIdx);return;}
+  paintRail();return;
+ }
+ keyHome(key);
+},true);
+$("#bPlay").addEventListener("click",()=>nativeOpen(homeItem(),"play"));
+$("#bMore").addEventListener("click",()=>nativeOpen(homeItem(),"details"));
+$("#rail").addEventListener("click",event=>{const node=event.target.closest(".ic");if(node)goSection(Number(node.dataset.i));});
+$("#rowsWrap").addEventListener("click",event=>{const node=event.target.closest(".p");if(!node)return;const key=decodeURIComponent(node.dataset.key);nativeOpen({key},"details");});
+window.NuvioSkin={
+ setData(payload){
+  const rows=payload&&Array.isArray(payload.rows)?payload.rows:[];
+  S.catalogRows=rows;
+  S.catalog=rows.flatMap(row=>row.items||[]);
+  enterHome(S.section,true);
+ },
+ focus(){try{document.body.focus();}catch(_){}},
+ back(){if(S.rail){S.rail=false;paintHome();}else{toRail();}}
+};
+enterHome(1,false);
+</script>
+</body>
+</html>

@@ -76,3 +76,7 @@ jobs:
           archive: false
           if-no-files-found: error
           retention-days: 7
+
+# Keep this PR build workflow available for rebuilding the corrected branch head.
+
+# Netflix classic redesign validation: keep the real production Compose home screen in the PR merge build.

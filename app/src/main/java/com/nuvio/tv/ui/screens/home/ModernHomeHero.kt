@@ -7,6 +7,7 @@ import com.nuvio.tv.ui.theme.NuvioTheme
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +52,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Button
+import androidx.tv.material3.ButtonDefaults
+import androidx.tv.material3.Border
+import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -306,6 +311,7 @@ internal fun HeroTitleBlock(
     mdbListRatingOrder: List<String> = com.nuvio.tv.domain.model.MDBListSettings.DEFAULT_RATING_ORDER,
     trailerPlaying: () -> Boolean = { false },
     descriptionAutoScrollEnabled: Boolean = false,
+    onMoreInfoClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     // The providers read hero state that is rewritten on every focus move, often with an equal
@@ -344,11 +350,13 @@ internal fun HeroTitleBlock(
             mdbListShowOnHero = mdbListShowOnHero,
             mdbListRatingOrder = mdbListRatingOrder,
             trailerPlaying = trailerPlaying,
-            descriptionAutoScrollEnabled = descriptionAutoScrollEnabled
+            descriptionAutoScrollEnabled = descriptionAutoScrollEnabled,
+            onMoreInfoClick = onMoreInfoClick
         )
     }
 }
 
+@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 private fun HeroTitleContent(
     previewProvider: () -> HeroPreview?,
@@ -357,13 +365,14 @@ private fun HeroTitleContent(
     mdbListShowOnHero: Boolean = false,
     mdbListRatingOrder: List<String> = com.nuvio.tv.domain.model.MDBListSettings.DEFAULT_RATING_ORDER,
     trailerPlaying: () -> Boolean = { false },
-    descriptionAutoScrollEnabled: Boolean = false
+    descriptionAutoScrollEnabled: Boolean = false,
+    onMoreInfoClick: (() -> Unit)? = null
 ) {
     val preview = previewProvider() ?: return
     val highlighterEnabled = LocalRecompositionHighlighterEnabled.current
-    val descriptionMaxLines = 4
-    val descriptionScale = if (portraitMode) 0.90f else 1f
-    val titleScale = if (portraitMode) 0.92f else 1f
+    val descriptionMaxLines = 3
+    val descriptionScale = 1f
+    val titleScale = if (portraitMode) 1.15f else 1.26f
     val metaScale = 1f
     val titleSpacing = NuvioTheme.spacing.sm * titleScale
     val metaSpacing = NuvioTheme.spacing.sm * metaScale
@@ -373,8 +382,8 @@ private fun HeroTitleContent(
     val headlineLarge = MaterialTheme.typography.headlineLarge
     val labelMedium = MaterialTheme.typography.labelMedium
     val bodyMedium = MaterialTheme.typography.bodyMedium
-    val logoMaxWidthPx = remember(density) { with(density) { 220.dp.roundToPx() } }
-    val logoHeightPx = remember(density) { with(density) { 100.dp.roundToPx() } }
+    val logoMaxWidthPx = remember(density) { with(density) { 440.dp.roundToPx() } }
+    val logoHeightPx = remember(density) { with(density) { 180.dp.roundToPx() } }
 
     val logoModel = remember(context, preview.logo, logoMaxWidthPx, logoHeightPx) {
         preview.logo?.let {
@@ -418,8 +427,8 @@ private fun HeroTitleContent(
                 contentDescription = preview.title,
                 onError = { logoLoadFailed = true },
                 modifier = Modifier
-                    .height(100.dp)
-                    .widthIn(min = 100.dp, max = 220.dp)
+                     .height(180.dp)
+                    .widthIn(min = 120.dp, max = 440.dp)
                     .fillMaxWidth(),
                 contentScale = ContentScale.Fit,
                 alignment = Alignment.CenterStart
@@ -672,6 +681,36 @@ private fun HeroTitleContent(
                 paused = trailerPlaying,
                 modifier = Modifier.graphicsLayer { alpha = metaAlpha }
             )
+        }
+
+        if (onMoreInfoClick != null) {
+            Button(
+                onClick = onMoreInfoClick,
+                modifier = Modifier
+                    .padding(top = NuvioTheme.spacing.lg)
+                    .graphicsLayer { alpha = metaAlpha },
+                // Netflix-classic primary surface: keep the existing real details
+                // navigation, but use the light CTA treatment from the reference design.
+                colors = ButtonDefaults.colors(
+                    containerColor = Color(0xFFE5E5E5),
+                    focusedContainerColor = Color.White,
+                    contentColor = Color(0xFF141414),
+                    focusedContentColor = Color(0xFF141414)
+                ),
+                shape = ButtonDefaults.shape(shape = RoundedCornerShape(6.dp)),
+                border = ButtonDefaults.border(
+                    focusedBorder = Border(
+                        border = BorderStroke(NuvioTheme.spacing.xxs, NuvioTheme.colors.FocusRing),
+                        shape = RoundedCornerShape(6.dp)
+                    )
+                ),
+                contentPadding = PaddingValues(horizontal = 28.dp, vertical = 15.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.cw_action_go_to_details),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            }
         }
     }
 }
